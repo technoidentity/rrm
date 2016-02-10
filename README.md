@@ -4,7 +4,7 @@ FIXME: description
 
 ## Installation
 
-git clone https://github.com/technoidentity/rrms.git
+git clone https://github.com/technoidentity/rrm.git
 
 ##Build
 
