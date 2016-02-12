@@ -283,9 +283,6 @@
 (defn o6-click [event]
   (secretary/dispatch! "/o6register"))
 
-
-
-
 ;;.............. End of Tab Events ......
 
 (defn search [event]
@@ -527,67 +524,104 @@
    [:div {:class "box"}
     [:div {:class "box-header"}
      [:h3 "List of Mutations"]]
-    [:div.row
-     [:div.col-md-12
-      [:div.form-group
+      [:div.col-md-12
        ;; [:div.col-sm-2 [:input.form-control {:id "dt1" :type "date"}]]
        ;; [:div.col-sm-2 [:input.form-control {:id "dt2" :type "date"}]]
-       [:div.col-sm-2 "Mutation Number"  [:input.form-control {:id "mutationnumber" :type "text"
-                                                               :placeholder "Enter search by mutationnumber"}]]
+       [:div.form-group
+        [:div.row
+         [:div.col-sm-2 "Mutation Number"
+          [:input.form-control {:id "mutationnumber"
+                              :type "text"
+                                :placeholder "Enter search by mutationnumber"}]]
+         [:div.col-sm-2 "Enter Search Text"
+          [:input.form-control {:id "dt" :type "text"
+                                               :placeholder "Enter search text.."}]]]]
+       [:div.form-group
+        [:div.row
+         [:div.col-sm-2 "Title"
+          [:input.form-control {:id "stitle"
+                                :type "text"
+                                :placeholder "Title"}]]
+         [:div.col-sm-2 "District Name"
+          [:input.form-control {:id "sdistrictname"
+                                :list "combo"
+                                :placeholder "District Name"}[datalist] ]]
+         [:div.col-sm-2 "Sub Division Name"
+          [:input.form-control {:id "ssubdivisionname"
+                                :list "combo"
+                                :placeholder "Sub Division Name"}[datalist]]]
+         [:div.col-sm-2 "Village Name"
+          [:input.form-control {:id "svillagename"
+                                :list "combo"
+                                :placeholder "Village Name"}[datalist]]]
+         [:div.col-sm-2 "Name Of P.O"
+          [:input.form-control {:id "svillagename"
+                                :list "combo"
+                                :placeholder "Name Of P.O"}[datalist]]]]]
+       [:div.form-group
+        [:div.row
+         [:div.col-sm-2 "O2 Number"
+          [:input.form-control {:id "so2number"
+                                :type "text"
+                                :placeholder "O2 Number"}]]
+         [:div.col-sm-2 "Khasra Number"
+          [:input.form-control {:id "skhasranumber"
+                                :type "text"
+                                :placeholder "Khasra Number"} ]]
+         [:div.col-sm-2 "Khata khatuni Number"
+          [:input.form-control {:id "skhatakhatuninumber"
+                                :type "text"
+                                :placeholder "Khata Khatuni Number"}]]
+         [:div.col-sm-2 "Name of the First Party"
+          [:input.form-control {:id "snameofthefirstparty"
+                                :type "text"
+                                :placeholder "Name of the First Party"}]]
+         [:div.col-sm-2 "Name of the Second Party"
+          [:input.form-control {:id "snameofthesecondparty"
+                                :type "text"
+                                :placeholder "Name of the Second Party"}]]]
+        [:div.form-group
+         [:div.row
+          [:div.col-sm-2.col-md-offset-5 {:style {:padding-top "20px"}}
+           [:input.btn.btn-primary {:type "button" :value "Search" :on-click search}]
+           [:input.btn.btn-primary {:type "button" :value "Add" :on-click add}]
+           [:input.btn.btn-primary {:id "getall" :type "button" :value "Refresh":on-click get-all-click}]]]]]]
 
-       [:div.col-sm-2 [:input.form-control {:id "dt" :type "text"
-                                            :placeholder "Enter search text.."}]]
-       [:input {:type "button" :value "Search"
-                :class "btn btn-primary" :on-click search}]
-       [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click add}]
-       ;; (url-format "#/documents/add" "Document")
-       [:input {:id "getall" :type "button" :value "Refresh"
-                :class "btn btn-primary" :on-click get-all-click}]]
-      [:div {:class "box-body"}
-
-       [:table {:class "table table-bordered table-striped dataTable"}
-        [:thead
-         [:tr
-          [:th "Mutation Number"]
-          [:th "Name of the FirstParty"]
-          [:th "Name of The SecondParty"]
-          [:th "Date of Institution"]
-          [:th "Name of P.O"]
-          [:th "Name of Districts"]
-          [:th "Name of Village"]
-          [:th "SubDivisionName"]
-          [:th " "]
-          [:th " "]
-          ]]
-        [:tbody
-         (for [mt mutations]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-mutationnumber mt)]
-                              [:td (.-nameofthefirstparty mt)]
-                              [:td (.-nameofthesecondparty mt)]
-                              ;;  [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-dateofinstitution dn)))]
-                              [:td (.-dateofinstitution mt)]
-                              [:td (.-nameofpo mt)]
-                              [:td (.-districtname mt)]
-                              [:td (.-villagename mt)]
-                              [:td (.-subdivisionname mt)]
-                              ;; [:td [:input {:type "button" :on-click #(click-update(.-id dn))
-                              ;;               :class "glyphicon glyphicon-edit" :value "Update"}
-                              ;;       ]]
-                              [:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              ;; [:td [:input {:type "button" :on-click #(delete(.-id dn))
-                              ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
-
-                              ])]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]
-       ]
-      ]]]
-   ;; [:div.padding]
-   ;;  [:div.page-footer [:h4 "Copyright All Rights Reserved © 2016 TechnoIdentity Solutions Pvt.Ltd"]]
-   ])
-
+    [:div {:class "box-body"}
+     [:table {:class "table table-bordered table-striped dataTable"}
+      [:thead
+       [:tr
+        [:th "Mutation Number"]
+        [:th "Name of the FirstParty"]
+        [:th "Name of The SecondParty"]
+        [:th "Date of Institution"]
+        [:th "Name of P.O"]
+        [:th "Name of Districts"]
+        [:th "Name of Village"]
+        [:th "SubDivisionName"]
+        [:th " "]
+        [:th " "]
+        ]]
+      [:tbody
+       (for [mt mutations]
+         ^{:key (.-id mt)} [:tr
+                            [:td (.-mutationnumber mt)]
+                            [:td (.-nameofthefirstparty mt)]
+                            [:td (.-nameofthesecondparty mt)]
+                            ;;  [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-dateofinstitution dn)))]
+                            [:td (.-dateofinstitution mt)]
+                            [:td (.-nameofpo mt)]
+                            [:td (.-districtname mt)]
+                            [:td (.-villagename mt)]
+                            [:td (.-subdivisionname mt)]
+                            ;; [:td [:input {:type "button" :on-click #(click-update(.-id dn))
+                            ;;               :class "glyphicon glyphicon-edit" :value "Update"}
+                            ;;       ]]
+                            [:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
+                            ;; [:td [:input {:type "button" :on-click #(delete(.-id dn))
+                            ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
+                            [:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]])]]
+       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
 
 (defroute mutations-list "/mutations" []
   (let [onres (fn [json]
