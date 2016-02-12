@@ -515,6 +515,35 @@
     (set-key-value :is-searched-results false)
     (http-get (str serverhost "mutations?pageIndex=0&pageSize=10") onres)))
 
+
+(defn districtlist []
+  [:datalist {:id "distcombo"}
+   (let [district ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
+     (for [i district]
+       ^{:key i}
+       [:option {:value i}]))])
+
+(defn divisionlist []
+  [:datalist {:id "divcombo"}
+   (let [division ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
+     (for [i division]
+       ^{:key i}
+       [:option {:value i}]))])
+
+(defn villagelist []
+  [:datalist {:id "villagecombo"}
+   (let [village ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
+     (for [i village]
+       ^{:key i}
+       [:option {:value i}]))])
+
+(defn nameofpolist []
+  [:datalist {:id "nameofpocombo"}
+   (let [po ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
+     (for [i po]
+       ^{:key i}
+       [:option {:value i}]))])
+
 (defn render-mutations [mutations]
   [:div
    ;; [:div.padding]
@@ -538,48 +567,48 @@
                                                :placeholder "Enter search text.."}]]]]
        [:div.form-group
         [:div.row
-         [:div.col-sm-2 "Title"
-          [:input.form-control {:id "stitle"
-                                :type "text"
-                                :placeholder "Title"}]]
          [:div.col-sm-2 "District Name"
           [:input.form-control {:id "sdistrictname"
                                 :list "combo"
-                                :placeholder "District Name"}[datalist] ]]
+                                :placeholder "District Name"}[districtlist]]]
          [:div.col-sm-2 "Sub Division Name"
           [:input.form-control {:id "ssubdivisionname"
                                 :list "combo"
-                                :placeholder "Sub Division Name"}[datalist]]]
+                                :placeholder "Sub Division Name"}[divisionlist]]]
          [:div.col-sm-2 "Village Name"
           [:input.form-control {:id "svillagename"
                                 :list "combo"
-                                :placeholder "Village Name"}[datalist]]]
-         [:div.col-sm-2 "Name Of P.O"
-          [:input.form-control {:id "svillagename"
-                                :list "combo"
-                                :placeholder "Name Of P.O"}[datalist]]]]]
+                                :placeholder "Village Name"}[villagelist]]]
+        [:div.col-sm-2 "O2 Number"
+         [:input.form-control {:id "so2number"
+                               :type "text"
+                               :placeholder "O2 Number"}]]
+        [:div.col-sm-2 "Name of the First Party"
+         [:input.form-control {:id "snameofthefirstparty"
+                               :type "text"
+                               :placeholder "Name of the First Party"}]]]]
        [:div.form-group
         [:div.row
-         [:div.col-sm-2 "O2 Number"
-          [:input.form-control {:id "so2number"
-                                :type "text"
-                                :placeholder "O2 Number"}]]
-         [:div.col-sm-2 "Khasra Number"
-          [:input.form-control {:id "skhasranumber"
-                                :type "text"
-                                :placeholder "Khasra Number"} ]]
-         [:div.col-sm-2 "Khata khatuni Number"
-          [:input.form-control {:id "skhatakhatuninumber"
-                                :type "text"
-                                :placeholder "Khata Khatuni Number"}]]
-         [:div.col-sm-2 "Name of the First Party"
-          [:input.form-control {:id "snameofthefirstparty"
-                                :type "text"
-                                :placeholder "Name of the First Party"}]]
          [:div.col-sm-2 "Name of the Second Party"
           [:input.form-control {:id "snameofthesecondparty"
                                 :type "text"
-                                :placeholder "Name of the Second Party"}]]]
+                                :placeholder "Name of the Second Party"}]]
+         [:div.col-sm-2 "Name Of P.O"
+          [:input.form-control {:id "svillagename"
+                                :list "combo"
+                                :placeholder "Name Of P.O"}[nameofpolist]]]
+          [:div.col-sm-2 "Title"
+           [:input.form-control {:id "stitle"
+                                 :type "text"
+                                 :placeholder "Title"}]]
+         [:div.col-sm-2 "Khasra Number"
+          [:input.form-control {:id "skhasranumber"
+                                :type "text"
+                                :placeholder "Khasra Number"}]]
+         [:div.col-sm-2 "Khata khatuni Number"
+          [:input.form-control {:id "skhatakhatuninumber"
+                                :type "text"
+                                :placeholder "Khata Khatuni Number"}]]]
         [:div.form-group
          [:div.row
           [:div.col-sm-2.col-md-offset-5 {:style {:padding-top "20px"}}
