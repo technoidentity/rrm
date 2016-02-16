@@ -25,7 +25,9 @@
                           :current-page 1
                           :total-pages 1
                           :page-location nil
-                          :villages {}
+                          :districts nil
+                          :subdivisions nil
+                          :villages nil
                           :is-searched-results false
                           :user nil}))
 
@@ -300,6 +302,11 @@
     (http-get (str (get-search-url mn dt) "&pageIndex=0&pageSize=10")
               onres)))
 
+(defn input [label type id]
+  (row label [:input.form-control {:type type :id id :on-change on-change}]))
+
+;; --------------------------------------------------------------------------
+;; mutation form
 
 (defn form-validator [data-set]
   (first (b/validate data-set
@@ -313,7 +320,6 @@
                      :khasranumber [[v/required :message "Field is required"]]
                      :area [[v/required :message "Field is required"]]
                      :khatakhatuninumber [[v/required :message "Field is required"]]
-                     :subdivisionname  [[v/required :message "Field is required"]]
                      :o2number [[v/required :message "Field is required"]]
                      :o4number [[v/required :message "Field is required"]]
                      :o6number [[v/required :message "Field is required"]]
@@ -333,69 +339,6 @@
                           [:div {:style  {:color "red"}}
                            [:b (str (first ((form-validator @data-set) id)))]])
                         [:div])]])))
-
-
-(defn add-form-onclick [data-set focus]
-  (if (= nil (form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid
-                                (int (.-value (.getElementById js/document "districts")))))
-        (let [onres (fn[json]
-                      (secretary/dispatch! "/"))]
-          (http-post (str serverhost "mutations")
-                     onres  (.serialize (Serializer.) (clj->js @data-set)))))
-    (reset! focus "on")))
-
-
-(defn update-form-onclick [data-set focus]
-  (if (= nil (form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid
-                                (int (.-value (.getElementById js/document "districts")))))
-        (let [onres (fn[data]
-                      (secretary/dispatch! "/"))]
-          (http-put (str serverhost "mutations/" (:id @data-set))
-                    onres (.serialize (Serializer.) (clj->js @data-set)))))
-    (reset! focus "on")))
-
-(defn form-cancel [event]
-  (secretary/dispatch! "/"))
-
-(defn on-change [event]
-  (let [ele (.getElementById js/document "id")
-        eval (.-value ele)
-        onresp (fn [json]
-                 ;; (let [dt  (aggre-str (getdata json))]
-                 ;;   (set! (.-value ele) (if(empty? dt) eval dt))))]
-                 (let [dt (getdata json)]
-                   (set-key-value :villages dt)))]
-
-    (set-key-value :villages [])
-    (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval)
-                onresp))))
-
-(defn input [label type id]
-  (row label [:input.form-control {:type type :id id :on-change on-change}]))
-
-(defn get-villages []
-  (let [onres (fn[json]((set-key-value :villages (getdata json))))]
-    (http-get (str serverhost "villages") onres)))
-
-(defn tags-template [data-set]
-  (cond (nil? (:villageid @data-set)) [:select.form-control {:id "districts"}
-                                       (for [d (get-value! :villages)]
-                                         ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)])]
-        :else [:select.form-control {:id "districts" :defaultValue (:villageid @data-set)}
-               (doall (for [d (get-value! :villages)]
-                        ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)]))]))
-
-
-(defn form-input-select [label data-set focus]
-  (let [input-focus (r/atom nil)]
-    (fn []
-      [:div.form-group
-       [:label.col-sm-3.control-label label]
-       [:div#tagdiv.col-sm-6 [tags-template data-set]]
-       [:div.col-sm-3 [:div]]])))
 
 (defn datalist []
   [:datalist {:id "combo"}
@@ -426,6 +369,66 @@
                            [:b (str (first ((form-validator @data-set) id)))]])
                         [:div])]])))
 
+(defn dist-onchange [id]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (set-key-value :subdivisions dt)
+                (set-key-value :villages nil)))]
+    (http-get (str  "http://localhost:9000/districts/" id  "/subdivisions") res)))
+
+(defn dist-sel-tag [id data data-set]
+  [:select.form-control {:id id
+                         :value (@data-set id)
+                         :on-change #(dist-onchange (-> % .-target .-value)) }
+   [:option {:value 0} "--Select--"]
+   (for [d  data]
+     ^{:key (.-id d)}
+     [:option {:value (.-id d)} (.-name d)])])
+
+(defn form-dist-sel [label id opt-data data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label label]
+   [:div.col-sm-6 [dist-sel-tag id opt-data data-set]]
+   [:div.col-sm-3 [:div]]])
+
+(defn sub-onchange [id]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (set-key-value :villages dt)))]
+    (http-get (str  "http://localhost:9000/subdivisions/" id  "/villages") res)))
+
+(defn sub-sel-tag [id data data-set]
+  [:select.form-control {:id id
+                         :value (@data-set id)
+                         :on-change #(sub-onchange (-> % .-target .-value))}
+   [:option {:value 0} "--Select--"]
+   (for [d  data]
+     ^{:key (.-id d) }
+     [:option {:value (.-id d)} (.-subdivisionname d)])])
+
+(defn form-sub-sel [label id opt-data data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label label]
+   [:div.col-sm-6 [sub-sel-tag id opt-data data-set]]
+   [:div.col-sm-3 [:div]]])
+
+
+(defn villages-sel-tag [id data data-set ]
+  [:select.form-control {:id id
+                         :value (@data-set id)
+                         :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
+   [:option {:value 0} "--Select--"]
+   (for [d  data]
+     ^{:key (.-id d) }
+     [:option {:value (.-id d)} (.-villagename d)])])
+
+(defn form-villages-sel [label id opt-data data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label label]
+   [:div.col-sm-6 [villages-sel-tag id opt-data data-set]]
+   [:div.col-sm-3 [:div]]])
+
+
 (defn mutation-template [doc-name data-set focus save-function]
  [:div.container
   [:div.col-md-12
@@ -434,25 +437,26 @@
      [:h2.box-title doc-name]]
     [:div.form-horizontal
      [:div.box-body
-       [form-input-element :mutationnumber "Mutation Number" "text" data-set focus]
-       [form-input-element :nameofthefirstparty "Name of the First Party" "text" data-set focus ]
-       [form-input-element :nameofthesecondparty "Name of the Second Party" "text" data-set focus]
-       [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus]
-       [form-input-combo   :nameofpo "Name of PO" data-set focus]
-       [form-input-element :dateofdecision "Date of Decision" "date" data-set focus]
-       [form-input-element :title "Title" "text" data-set focus]
-       [form-input-element :khasranumber "Khasra Number" "text" data-set focus]
-       [form-input-element :area "Area" "text" data-set focus]
-       [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
-       [form-input-select "Village Name" data-set focus]
-       [form-input-element :subdivisionname "Sub division Name" "text" data-set focus]
-       [form-input-element :o2number "O2 Number" "text" data-set focus]
-       [form-input-element :o4number "O4 Number" "text" data-set focus]
-       [form-input-element :o6number "O6 Number" "text" data-set focus]
-       [form-input-element :racknumber "Rack Number" "text" data-set focus]
-       [form-input-element :receiveddate "Received Date" "date" data-set focus]
-       [form-input-element :remarks "Remarks" "text" data-set focus]]
-     [:div.box-footer
+      [form-input-element :mutationnumber "Mutation Number" "text" data-set focus]
+      [form-input-element :nameofthefirstparty "Name of the First Party" "text" data-set focus ]
+      [form-input-element :nameofthesecondparty "Name of the Second Party" "text" data-set focus]
+      [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus]
+      [form-input-combo   :nameofpo "Name of PO" data-set focus]
+      [form-input-element :dateofdecision "Date of Decision" "date" data-set focus]
+      [form-input-element :title "Title" "text" data-set focus]
+      [form-input-element :khasranumber "Khasra Number" "text" data-set focus]
+      [form-input-element :area "Area" "text" data-set focus]
+      [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
+      [form-dist-sel "District" :districtid (:districts @storage) data-set]
+      [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set]
+      [form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+      [form-input-element :o2number "O2 Number" "text" data-set focus]
+      [form-input-element :o4number "O4 Number" "text" data-set focus]
+      [form-input-element :o6number "O6 Number" "text" data-set focus]
+      [form-input-element :racknumber "Rack Number" "text" data-set focus]
+      [form-input-element :receiveddate "Received Date" "date" data-set focus]
+      [form-input-element :remarks "Remarks" "text" data-set focus]]
+    [:div.box-footer
       [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
       [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]])
 
@@ -460,6 +464,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [mutation-template "Mutation Add Form" add-data focus #(add-form-onclick add-data focus)])))
+
 
 (defn mutation-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -473,24 +478,42 @@
                              :khasranumber (.-khasranumber dmt)
                              :khatakhatuninumber (.-khasranumber dmt)
                              :area (.-area dmt)
-                             :subdivisionname (.-subdivisionname dmt)
-                             :villageid (.-villageid dmt)
                              :o2number (.-o2number dmt)
                              :o4number (.-o4number dmt)
                              :o6number (.-o6number dmt)
                              :racknumber (.-racknumber dmt)
                              :receiveddate (.-receiveddate dmt)
                              :remarks (.-remarks dmt)
-                             :villagename (.-villagename dmt)
-                             :districtname (.-districtname dmt)
+                             :villageid (.-villageid dmt)
+                             :subdivisionid (.-subdivisionid dmt)
+                             :districtid (.-districtid dmt)
                              :isactive true})
         focus (r/atom nil)]
     (fn [] [mutation-template
             "Mutation Update Form"
             update-data
             focus
-            #(update-form-onclick update-data focus)])))
+            #(update-form-onclick update-data focus) sub-division-id])))
 
+
+(defn add-form-onclick [data-set focus]
+  (if (= nil (form-validator @data-set))
+    (let [onres (fn[json]
+                  (secretary/dispatch! "/"))]
+      (http-post (str serverhost "mutations")
+                     onres  (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
+
+(defn update-form-onclick [data-set focus]
+  (if (= nil (form-validator @data-set))
+     (let [onres (fn[data]
+                      (secretary/dispatch! "/"))]
+          (http-put (str serverhost "mutations/" (:id @data-set))
+                    onres (.serialize (Serializer.) (clj->js @data-set)))))
+    (reset! focus "on"))
+
+(defn form-cancel [event]
+  (secretary/dispatch! "/"))
 
 (defn click-update[id]
   (secretary/dispatch! (str "/mutations/update/" id)))
@@ -516,46 +539,40 @@
     (http-get (str serverhost "mutations?pageIndex=0&pageSize=10") onres)))
 
 
-(defn districtlist []
-  [:datalist {:id "distcombo"}
-   (let [district ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
-     (for [i district]
-       ^{:key i}
-       [:option {:value i}]))])
+(defn src-dist-sel-tag []
+  [:select.form-control {:id :src-dist
+                         :placeholder "District Name"
+                         :on-change #(dist-onchange (-> % .-target .-value)) }
+   [:option {:value 0} "--Select--"]
+   (for [d  (@storage :districts)]
+     ^{:key (.-id d)}
+     [:option {:value (.-id d)} (.-name d)])])
 
-(defn divisionlist []
-  [:datalist {:id "divcombo"}
-   (let [division ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
-     (for [i division]
-       ^{:key i}
-       [:option {:value i}]))])
+(defn src-sub-sel-tag []
+  [:select.form-control {:id :src-sub
+                         :placeholder "Sub Division Name"
+                         :on-change  #(sub-onchange (-> % .-target .-value)) }
+   [:option {:value 0} "--Select--"]
+   (for [d  (@storage :subdivisions)]
+     ^{:key (.-id d)}
+     [:option {:value (.-id d)} (.-subdivisionname d)])])
 
-(defn villagelist []
-  [:datalist {:id "villagecombo"}
-   (let [village ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
-     (for [i village]
-       ^{:key i}
-       [:option {:value i}]))])
+(defn src-vill-sel-tag []
+  [:select.form-control {:id :src-vill
+                         :placeholder "Village Name"
+                          }
+   [:option {:value 0} "--Select--"]
+   (for [d  (@storage :villages)]
+     ^{:key (.-id d)}
+     [:option {:value (.-id d)} (.-villagename d)])])
 
-(defn nameofpolist []
-  [:datalist {:id "nameofpocombo"}
-   (let [po ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
-     (for [i po]
-       ^{:key i}
-       [:option {:value i}]))])
 
 (defn render-mutations [mutations]
   [:div
-   ;; [:div.padding]
-   ;; [:div.page-header [:h1 "Record Room Management System"]]
-   [:div#add]
-   [:div#update]
    [:div {:class "box"}
     [:div {:class "box-header"}
      [:h3 "List of Mutations"]]
       [:div.col-md-12
-       ;; [:div.col-sm-2 [:input.form-control {:id "dt1" :type "date"}]]
-       ;; [:div.col-sm-2 [:input.form-control {:id "dt2" :type "date"}]]
        [:div.form-group
         [:div.row
          [:div.col-sm-2 "Mutation Number"
@@ -565,56 +582,51 @@
          [:div.col-sm-2 "Enter Search Text"
           [:input.form-control {:id "dt" :type "text"
                                                :placeholder "Enter search text.."}]]]]
+   
        [:div.form-group
         [:div.row
-         [:div.col-sm-2 "District Name"
-          [:input.form-control {:id "sdistrictname"
-                                :list "combo"
-                                :placeholder "District Name"}[districtlist]]]
-         [:div.col-sm-2 "Sub Division Name"
-          [:input.form-control {:id "ssubdivisionname"
-                                :list "combo"
-                                :placeholder "Sub Division Name"}[divisionlist]]]
-         [:div.col-sm-2 "Village Name"
-          [:input.form-control {:id "svillagename"
-                                :list "combo"
-                                :placeholder "Village Name"}[villagelist]]]
-        [:div.col-sm-2 "O2 Number"
-         [:input.form-control {:id "so2number"
-                               :type "text"
-                               :placeholder "O2 Number"}]]
-        [:div.col-sm-2 "Name of the First Party"
-         [:input.form-control {:id "snameofthefirstparty"
-                               :type "text"
-                               :placeholder "Name of the First Party"}]]]]
-       [:div.form-group
-        [:div.row
-         [:div.col-sm-2 "Name of the Second Party"
-          [:input.form-control {:id "snameofthesecondparty"
+         [:div.col-sm-2 "Title"
+          [:input.form-control {:id "stitle"
                                 :type "text"
-                                :placeholder "Name of the Second Party"}]]
-         [:div.col-sm-2 "Name Of P.O"
-          [:input.form-control {:id "svillagename"
-                                :list "combo"
-                                :placeholder "Name Of P.O"}[nameofpolist]]]
-          [:div.col-sm-2 "Title"
-           [:input.form-control {:id "stitle"
-                                 :type "text"
-                                 :placeholder "Title"}]]
+                                :placeholder "Title"}]]
+         [:div.col-sm-2 "District Name"
+          [src-dist-sel-tag]]
+         [:div.col-sm-2 "Sub Division Name"
+          [src-sub-sel-tag]]
+        [:div.col-sm-2 "Village Name"
+         [src-vill-sel-tag]]
+        [:div.col-sm-2 "Name Of P.O"
+         [:input.form-control {:id "svillagename"
+                               :list "combo"
+                               :placeholder "Name Of P.O"}[datalist]]]]]
+      [:div.form-group
+        [:div.row
+         [:div.col-sm-2 "O2 Number"
+          [:input.form-control {:id "so2number"
+                                :type "text"
+                                :placeholder "O2 Number"}]]
          [:div.col-sm-2 "Khasra Number"
           [:input.form-control {:id "skhasranumber"
                                 :type "text"
-                                :placeholder "Khasra Number"}]]
+                                :placeholder "Khasra Number"} ]]
          [:div.col-sm-2 "Khata khatuni Number"
           [:input.form-control {:id "skhatakhatuninumber"
                                 :type "text"
-                                :placeholder "Khata Khatuni Number"}]]]
+                                :placeholder "Khata Khatuni Number"}]]
+         [:div.col-sm-2 "Name of the First Party"
+          [:input.form-control {:id "snameofthefirstparty"
+                                :type "text"
+                                :placeholder "Name of the First Party"}]]
+         [:div.col-sm-2 "Name of the Second Party"
+          [:input.form-control {:id "snameofthesecondparty"
+                                :type "text"
+                                :placeholder "Name of the Second Party"}]]]]
         [:div.form-group
          [:div.row
           [:div.col-sm-2.col-md-offset-5 {:style {:padding-top "20px"}}
            [:input.btn.btn-primary {:type "button" :value "Search" :on-click search}]
            [:input.btn.btn-primary {:type "button" :value "Add" :on-click add}]
-           [:input.btn.btn-primary {:id "getall" :type "button" :value "Refresh":on-click get-all-click}]]]]]]
+           [:input.btn.btn-primary {:id "getall" :type "button" :value "Refresh":on-click get-all-click}]]]]]
 
     [:div {:class "box-body"}
      [:table {:class "table table-bordered table-striped dataTable"}
@@ -625,7 +637,7 @@
         [:th "Name of The SecondParty"]
         [:th "Date of Institution"]
         [:th "Name of P.O"]
-        [:th "Name of Districts"]
+        ;;  [:th "Name of Districts"]
         [:th "Name of Village"]
         [:th "SubDivisionName"]
         [:th " "]
@@ -637,20 +649,15 @@
                             [:td (.-mutationnumber mt)]
                             [:td (.-nameofthefirstparty mt)]
                             [:td (.-nameofthesecondparty mt)]
-                            ;;  [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-dateofinstitution dn)))]
                             [:td (.-dateofinstitution mt)]
                             [:td (.-nameofpo mt)]
-                            [:td (.-districtname mt)]
+                            ;; [:td (.-districtname mt)]
                             [:td (.-villagename mt)]
                             [:td (.-subdivisionname mt)]
-                            ;; [:td [:input {:type "button" :on-click #(click-update(.-id dn))
-                            ;;               :class "glyphicon glyphicon-edit" :value "Update"}
-                            ;;       ]]
                             [:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                            ;; [:td [:input {:type "button" :on-click #(delete(.-id dn))
-                            ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
                             [:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]])]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
+
 
 (defroute mutations-list "/mutations" []
   (let [onres (fn [json]
@@ -658,25 +665,48 @@
                   (set-key-value :mutations (.-data dt))
                   (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
                   (set-key-value :page-location  [render-mutations (get-value! :mutations)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+          (set-key-value :is-searched-results false)
+      (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 (defroute documents-path "/mutations/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
+                        (set-key-value :districts (getdata json))
                         (set-page! [mutation-add-template])))]
-    (http-get (str serverhost "villages") onres)))
+    (http-get (str serverhost "districts") onres)))
 
 (defroute documents-path1 "/mutations/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [mutation-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :mutations)))])))]
-    (http-get (str serverhost "villages") onres)))
+  (let [upd-data (first (filter (fn[obj] (=(.-id obj) (.parseInt js/window id))) (get-value! :mutations)))
 
-;; ---------------------------------------------------------
+        ;; sub-id  (r/atom nil)
+        ;; dist-id  (r/atom nil)
+
+        vill-res (fn[json](set-key-value :villages (getdata json)))
+        sub-res (fn[json](set-key-value :subdivisions (getdata json)))
+        dist-res (fn[json] ((set-key-value :districts (getdata json))
+                            (set-page! [mutation-update-template id upd-data])))]
+    (do
+      ;; (http-get (str serverhost "villages/" (.-villageid upd-data))
+      ;;           (fn [json]
+      ;;             (let [dt (getdata json)]
+      ;;               (reset! sub-id dt ))))
+
+      ;; (http-get (str  serverhost "subdivisions/" (.-subdivisionid sub-id))
+      ;;             (fn [json]
+      ;;               (reset! dist-id (getdata json))))
+
+      ;; (js/console.log upd-data)
+      ;; (js/console.log sub-id)
+      ;; (js/console.log )
+      (http-get (str serverhost "districts") dist-res)
+      ;; (http-get (str serverhost "districts" (.-districtid dist-id) "subdivisions") sub-res)
+      ;; (http-get (str serverhost "subdivisions" (.-subdivionid sub-id) "villages") vill-res)
+      (http-get (str serverhost "villages") vill-res)
+      (http-get (str serverhost "subdivisions") sub-res)
+      )))
+
+
+;; --------------------------------------------------------
 ;; rvenue-records
 
 (defn revenue-form-validator [data-set]
@@ -2557,9 +2587,12 @@
                 (let [dt (getdata json)]
                   (set-key-value :mutations (.-data dt))
                   (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-mutations (get-value! :mutations)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+                  (set-key-value :page-location  [render-mutations (get-value! :mutations)])))
+        dist-res (fn[json] (set-key-value :districts (getdata json)))]
+    (do
+      (set-key-value :is-searched-results false)
+      (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)
+      (http-get (str serverhost "districts") dist-res))))
 
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
