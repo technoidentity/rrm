@@ -26,6 +26,9 @@
                           :total-pages 1
                           :page-location nil
                           :villages {}
+                          :o2mutations {}
+                          :o4mutations {}
+                          :o6mutations {}
                           :is-searched-results false
                           :user nil}))
 
@@ -1946,7 +1949,7 @@
 (defn o2register-form-validator [data-set]
   (first (b/validate data-set
                      :serialnumber [[v/required :message "Field is required Must be number"]]
-                     :tehsil [[v/required :message "Field is required"]]
+                     :subdivisionname [[v/required :message "Field is required"]]
                      :dateofinstitution [[v/required :message "Field is required"]]
                      :sourceofreceipt [[v/required :message "Field is required"]]
                      :nameofthefirstparty [[v/required :message "Field is required"]]
@@ -1984,41 +1987,80 @@
                         [:div])]])))
 
 
+
+(defn set-o2-fields [data-set mutdata]
+  (do
+    (swap! data-set assoc :subdivisionname (.-subdivisionname mutdata))
+    (swap! data-set assoc :dateofinstitution (.-dateofinstitution mutdata))
+    (swap! data-set assoc :nameofthefirstparty (.-nameofthefirstparty mutdata))
+    (swap! data-set assoc :racknumber (.-nameofthefirstparty mutdata))
+    (swap! data-set assoc :mutationid (int (.-id mutdata)))
+    (swap! data-set assoc :villagename (.-villagename mutdata))))
+
+
+(defn reset-o2-fields [data-set]
+  (do
+    (swap! data-set assoc :subdivisionname nil)
+    (swap! data-set assoc :dateofinstitution nil)
+    (swap! data-set assoc :nameofthefirstparty nil)
+    (swap! data-set assoc :racknumber nil)
+    (swap! data-set assoc :mutationid nil)
+    (swap! data-set assoc :villagename "")))
+
+(defn on-o2-change [data-set]
+  (let [selval (.-value (.getElementById js/document "O2-select"))
+        onres (fn [json] (let [d (first (getdata json))]
+                          (set-o2-fields data-set d)))]
+    (if (= selval "select") (reset-o2-fields data-set)
+        (http-get (str serverhost "o2registers/"selval"/mutations")
+                  onres))))
+
+(defn o2-select
+  [data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label "O2 Number"]
+   [:div.col-sm-6
+    [:select.form-control {:id "O2-select" :value (:o2number @data-set) :on-change #(on-o2-change data-set)}
+     (for [d (get-value! :o2mutations)]
+       ^{:key d} [:option {:value d} d])]]])
+
+
 (defn o2register-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border 
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
+       [o2-select data-set]
        [o2register-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [o2register-input-row :tehsil "Tehsil" "text" data-set focus]
+       [o2register-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
        [o2register-input-row :dateofinstitution "Date Of Institution" "date" data-set focus]
        [o2register-input-row :sourceofreceipt "Source Of Receipt" "text" data-set focus]
-       [o2register-input-select "Village Name" data-set focus ]
+       [o2register-input-select :villagename "Village Name" data-set focus ]
        [o2register-input-row :nameofthefirstparty "Name Of The First Party" "text" data-set focus]
        [o2register-input-row :dateofreceiptfrompanchayat "Date Of Receipt From Panchayat" "date" data-set focus]
        [o2register-input-row :dateandgistoffinalorder "Date and gist of Final Order" "date" data-set focus]
        [o2register-input-row :racknumber "Rack Number" "text" data-set focus]
        [o2register-input-int-row :startingyear "Starting Year" "text" data-set focus]
        [o2register-input-int-row :endingyear "Ending Year" "text" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click o2register-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click o2register-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 
 (defn o2register-add-form-onclick [data-set focus]
+  (reset! data-set (assoc @data-set :o2number (.-value (.getElementById js/document "O2-select"))))
   (if (= nil (o2register-form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "o2register-districts")))))
-        (let [onres (fn[json] (secretary/dispatch! "/o2register"))]
-          (http-post (str serverhost "o2registers") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on")))
+    (let [onres (fn[json] (secretary/dispatch! "/o2register"))]
+      (http-post (str serverhost "o2registers") onres  (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 
 (defn o2register-update-form-onclick [data-set focus]
   (if (= nil (o2register-form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "o2register-districts")))))
+    (do (reset! data-set (assoc @data-set :o2number  (.-value (.getElementById js/document "O2-select"))))
         (let [onres (fn[data] (secretary/dispatch! "/o2register"))]
           (http-put (str serverhost "o2registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
@@ -2037,20 +2079,17 @@
       (http-get (str serverhost "villages/search?name=" eval) onresp))))
 
 
-(defn o2register-tags-template [data-set]
-  (cond (nil? (:villageid @data-set)) [:select.form-control {:id "o2register-districts"}
-                                       (for [d (get-value! :villages)]
-                                         ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)])]
-        :else [:select.form-control {:id "o2register-districts" :defaultValue (:villageid @data-set)}
-               (doall (for [d (get-value! :villages)]
-                        ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)]))]))
+(defn o2register-tags-template [id data-set]
+  [:select.form-control {:id id :value (id @data-set) }
+   (doall (for [d (get-value! :villages)]
+            ^{:key (.-id d)} [:option {:value (.-villagename d)} (.-villagename d)]))])
 
-(defn o2register-input-select [label data-set focus]
+(defn o2register-input-select [id label data-set focus]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div#tagdiv.col-sm-6 [o2register-tags-template data-set]]
+       [:div#tagdiv.col-sm-6 [o2register-tags-template id  data-set]]
        [:div.col-sm-3 [:div]]])))
 
 
@@ -2058,17 +2097,18 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [o2register-template 
-          "o2register Add Form" 
-            add-data focus
-             #(o2register-add-form-onclick add-data focus)])))
+           "o2register Add Form" 
+           add-data focus
+           #(o2register-add-form-onclick add-data focus)])))
 
 (defn o2register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
+                             :o2number (.-o2number dmt)
                              :serialnumber (.-serialnumber dmt)
                              :dateofinstitution (.-dateofinstitution dmt)
                              :villageid (.-villageid dmt)
                              :villagename (.-villagename dmt)
-                             :tehsil (.-tehsil dmt)
+                             :subdivisionname (.-subdivisionname dmt)
                              :sourceofreceipt (.-sourceofreceipt dmt)
                              :nameofthefirstparty (.-nameofthefirstparty dmt)
                              :dateofreceiptfrompanchayat (.-dateofreceiptfrompanchayat dmt)
@@ -2076,12 +2116,13 @@
                              :racknumber (.-racknumber dmt)
                              :startingyear (.-startingyear dmt)
                              :endingyear (.-endingyear dmt)
+                             :mutationid (.-mutationid dmt)
                              })
         focus (r/atom nil)]
     (fn [] [o2register-template
-            "o2register Update Form"
-            update-data focus
-            #(o2register-update-form-onclick update-data focus)])))
+           "o2register Update Form"
+           update-data focus
+           #(o2register-update-form-onclick update-data focus)])))
 
 
 (defn o2register-update[id]
@@ -2105,16 +2146,22 @@
 
 (defroute o2register-add-path "/o2register/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [o2register-add-template])))]
+                       (set-key-value :villages (getdata json))
+                       (set-page! [o2register-add-template])))
+        ono2resp (fn [json] ((set-key-value :o2mutations
+                                           (clj->js (cons "select" (js->clj (getdata json)))))))]
+    (http-get (str serverhost "mutations/o2numbers/search") ono2resp)
     (http-get (str serverhost "villages") onres)))
 
 (defroute o2register-upd-path "/o2register/update/:id" [id]
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [o2register-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :o2registers)))])))]
+                       (set-key-value :villages (getdata json))
+                       (set-page! [o2register-update-template id
+                                   (first (filter (fn[obj]
+                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :o2registers)))])))
+        ono2resp (fn [json] ((set-key-value :o2mutations
+                                           (clj->js (cons "select" (js->clj (getdata json)))))))]
+    (http-get (str serverhost "mutations/o2numbers/search") ono2resp)
     (http-get (str serverhost "villages") onres)))
 
 (defn o2register-add [event]
@@ -2139,7 +2186,7 @@
         [:thead
          [:tr
           [:th "S.No"]
-          [:th "Tehsil"]
+          [:th "Sub Division Name"]
           [:th "Date of Institution"]
           [:th "Source of Receipt"]
           [:th "Village Name"]
@@ -2156,7 +2203,7 @@
          (for [mt o2registers]
            ^{:key (.-id mt)} [:tr
                               [:td (.-serialnumber mt)]
-                              [:td (.-tehsil mt)]
+                              [:td (.-subdivisionname mt)]
                               [:td (.-dateofinstitution mt)]
                               [:td (.-sourceofreceipt mt)]
                               [:td (.-villagename mt)]
@@ -2178,7 +2225,7 @@
 
 (defn o4register-form-validator [data-set]
   (first (b/validate data-set
-                     :tehsil [[v/required :message "Field is required"]]
+                     :subdivisionname [[v/required :message "Field is required"]]
                      :khatakhatuninumber [[v/required :message "Field is required"]]
                      :numberanddateoforder [[v/required :message "Field is required"]]
                      :khasranumber [[v/required :message "Field is required"]]
@@ -2202,23 +2249,24 @@
 
 
 (defn o4register-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
-       [o4register-input-row :tehsil "Tehsil" "text" data-set focus]
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border 
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
+       [o4-select data-set]
+       [o4register-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
        [o4register-input-row :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
        [o4register-input-row :numberanddateoforder "Number and Date Of Order" "date" data-set focus]
        [o4register-input-row :khasranumber "Khasra Number" "text" data-set focus]
        [o4register-input-row :area "Area" "text" data-set focus]
        [o4register-input-row :revenuerentofshareofplotstransferred "Revenue Rent Of Share Of Plots Transfered" "text" data-set focus]
        [o4register-input-row :nameanddescriptionofthepersonsremoved "Name and Description Of the Persons Removed" "text" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click o4register-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click o4register-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 (defn o4register-add-template []
   (let [add-data (r/atom {:isactive true})
@@ -2231,33 +2279,76 @@
 
 (defn o4register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
-                             :tehsil (.-tehsil dmt)
+                             :o4number (.-o4number dmt)
+                             :subdivisionname (.-subdivisionname dmt)
                              :khatakhatuninumber (.-khatakhatuninumber dmt)
                              :numberanddateoforder (.-numberanddateoforder dmt)
                              :khasranumber (.-khasranumber dmt)
                              :area (.-area dmt)
                              :revenuerentofshareofplotstransferred (.-revenuerentofshareofplotstransferred dmt)
                              :nameanddescriptionofthepersonsremoved (.-nameanddescriptionofthepersonsremoved dmt)
+                             :villagename (.-villagename dmt)
+                             :mutationid (.-mutationid dmt)
                              })
         focus (r/atom nil)]
     (fn [] [o4register-template
-            "o4register Update Form"
-            update-data 
-            focus
-            #(o4register-update-form-onclick update-data focus)])))
+           "o4register Update Form"
+           update-data 
+           focus
+           #(o4register-update-form-onclick update-data focus)])))
+
+
+(defn set-o4-fields [data-set mutdata]
+  (do
+    (swap! data-set assoc :subdivisionname (.-subdivisionname mutdata))
+    (swap! data-set assoc :khatakhatuninumber (.-khatakhatuninumber mutdata))
+    (swap! data-set assoc :khasranumber (.-khasranumber mutdata))
+    (swap! data-set assoc :area (.-area mutdata))
+    (swap! data-set assoc :mutationid (int (.-id mutdata)))
+    (swap! data-set assoc :villagename (.-villagename mutdata))))
+
+
+(defn reset-o4-fields [data-set]
+  (do
+    (swap! data-set assoc :subdivisionname nil)
+    (swap! data-set assoc :khatakhatuninumber nil)
+    (swap! data-set assoc :khasranumber nil)
+    (swap! data-set assoc :area nil)
+    (swap! data-set assoc :mutationid nil)
+    (swap! data-set assoc :villagename "")))
+
+(defn on-o4-change [data-set]
+  (let [selval (.-value (.getElementById js/document "O4-select"))
+        onres (fn [json] (let [d (first (getdata json))]
+                          (set-o4-fields data-set d)))]
+    (if (= selval "select") (reset-o4-fields data-set)
+        (http-get (str serverhost "o4registers/"selval"/mutations")
+                  onres))))
+
+
+(defn o4-select
+  [data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label "O4 Number"]
+   [:div.col-sm-6
+    [:select.form-control {:id "O4-select" :value (:o4number @data-set) :on-change #(on-o4-change data-set)}
+     (for [d (get-value! :o4mutations)]
+       ^{:key (.-id d)} [:option {:value (.-o4number d)} (.-o4number d)])]]])
 
 
 (defn o4register-add-form-onclick [data-set focus]
+  (reset! data-set (assoc @data-set :o4number  (.-value (.getElementById js/document "O4-select"))))
   (if (= nil (o4register-form-validator @data-set))
     (let [onres (fn[json] (secretary/dispatch! "/o4register"))]
-          (http-post (str serverhost "o4registers") onres  (.serialize (Serializer.) (clj->js @data-set))))
-  (reset! focus "on")))
+      (http-post (str serverhost "o4registers") onres  (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 
 (defn o4register-update-form-onclick [data-set focus]
+
   (if (= nil (o4register-form-validator @data-set))
-      (let [onres (fn[data] (secretary/dispatch! "/o4register"))]
-          (http-put (str serverhost "o4registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
+    (let [onres (fn[data] (secretary/dispatch! "/o4register"))]
+      (http-put (str serverhost "o4registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
     (reset! focus "on")))
 
 (defn o4register-form-cancel [event]
@@ -2287,17 +2378,20 @@
 
 (defroute o4register-add-path "/o4register/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [o4register-add-template])))]
+                       (set-key-value :villages (getdata json))
+                       (set-page! [o4register-add-template])))
+        ono4resp (fn [json] ((set-key-value :o4mutations
+                                           (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json)))))))]
+    (http-get (str serverhost "mutations/o4numbers/search") ono4resp)
     (http-get (str serverhost "villages") onres)))
 
 (defroute o4register-upd-path "/o4register/update/:id" [id]
-  (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [o4register-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :o4registers)))])))]
-    (http-get (str serverhost "villages") onres)))
+  (let [ono4resp (fn [json] ((set-key-value :o4mutations
+                                           (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json)))))))]
+    (http-get (str serverhost "mutations/o4numbers/search") ono4resp)
+    (set-page! [o4register-update-template id
+                (first (filter (fn[obj]
+                                 (=(.-id obj) (.parseInt js/window id))) (get-value! :o4registers)))])))
 
 
 
@@ -2319,7 +2413,7 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
-          [:th "Tehsil"]
+          [:th "Sub Division Name"]
           [:th "Khata Khatuni Number"]
           [:th "Number and Date of Order"]
           [:th "Khasra Number"]
@@ -2332,7 +2426,7 @@
         [:tbody
          (for [mt o4registers]
            ^{:key (.-id mt)} [:tr
-                              [:td (.-tehsil mt)]
+                              [:td (.-subdivisionname mt)]
                               [:td (.-khatakhatuninumber mt)]
                               [:td (.-numberanddateoforder mt)]
                               [:td (.-khasranumber mt)]
@@ -2350,9 +2444,43 @@
 ;; ---------------------------------------------------------
 ;; o6register-records
 
+
+(defn set-o6-fields [data-set mutdata]
+  (do
+    (swap! data-set assoc :subdivisionname (.-subdivisionname mutdata))
+    (swap! data-set assoc :mutationid (int (.-id mutdata)))
+    (swap! data-set assoc :villagename (.-villagename mutdata))))
+
+
+(defn reset-o6-fields [data-set]
+  (do
+    (swap! data-set assoc :subdivisionname nil)
+    (swap! data-set assoc :mutationid nil)
+    (swap! data-set assoc :villagename "")))
+
+(defn on-o6-change [data-set]
+  (let [selval (.-value (.getElementById js/document "O6-select"))
+        onres (fn [json] (let [d (first (getdata json))]
+                          (set-o6-fields data-set d)))]
+    (if (= selval "select") (reset-o6-fields data-set)
+        (http-get (str serverhost "o6registers/"selval"/mutations")
+                  onres))))
+
+
+(defn o6-select
+  [data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label "O6 Number"]
+   [:div.col-sm-6
+    [:select.form-control {:id "O6-select" :value (:o6number @data-set) :on-change #(on-o6-change data-set)}
+     (for [d (get-value! :o6mutations)]
+       ^{:key (.-id d)} [:option {:value (.-o6number d)} (.-o6number d)])]]])
+
+
+
 (defn o6register-form-validator [data-set]
   (first (b/validate data-set
-                     :tehsil [[v/required :message "Field is required"]]
+                     :subdivisionname [[v/required :message "Field is required"]]
                      :year [[v/required :message "Field is required"]]
                      :mehsilnumber [[v/required :message "Field is required"]]
                      :dateoforderlevy [[v/required :message "Field is required"]]
@@ -2374,30 +2502,32 @@
 
 
 (defn o6register-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body 
-       [o6register-input-row :tehsil "Tehsil" "text" data-set focus]
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border 
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body 
+       [o6-select data-set]
+       [o6register-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
        [o6register-input-row :year "Year" "date" data-set focus]
        [o6register-input-row :mehsilnumber "Mehsil Number" "text" data-set focus]
        [o6register-input-row :dateoforderlevy "Date of Order Levy" "date" data-set focus]
        [o6register-input-select "Village Name" data-set focus ]
        [o6register-input-row :nameofpersonwhomrecoveryismade "Name of Person Whom Recovery is Made" "text" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click o6register-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click o6register-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 
 (defn o6register-add-form-onclick [data-set focus]
   (if (= nil (o6register-form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "o6register-districts")))))
-        (let [onres (fn[json] (secretary/dispatch! "/o6register"))]
-          (http-post (str serverhost "o6registers") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on")))
+    (do
+      (reset! data-set (assoc @data-set :o6number (.-value (.getElementById js/document "O6-select"))))
+      (let [onres (fn[json] (secretary/dispatch! "/o6register"))]
+        (http-post (str serverhost "o6registers") onres  (.serialize (Serializer.) (clj->js @data-set)))))
+    (reset! focus "on")))
 
 
 (defn o6register-update-form-onclick [data-set focus]
@@ -2422,12 +2552,9 @@
 
 
 (defn o6register-tags-template [data-set]
-  (cond (nil? (:villageid @data-set)) [:select.form-control {:id "o6register-districts"}
-                                       (for [d (get-value! :villages)]
-                                         ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)])]
-        :else [:select.form-control {:id "o6register-districts" :defaultValue (:villageid @data-set)}
-               (doall (for [d (get-value! :villages)]
-                        ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)]))]))
+  [:select.form-control {:id "o6register-districts" :value (:villagename @data-set)}
+   (doall (for [d (get-value! :villages)]
+            ^{:key (.-id d)} [:option {:value (.-villagename d)} (.-villagename d)]))])
 
 (defn o6register-input-select [label data-set focus]
   (let [input-focus (r/atom nil)]
@@ -2448,7 +2575,8 @@
 
 (defn o6register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
-                             :tehsil (.-tehsil dmt)
+                             :o6number (.-o6number dmt)
+                             :subdivisionname (.-subdivisionname dmt)
                              :year (.-year dmt)
                              :mehsilnumber (.-mehsilnumber dmt)
                              :dateoforderlevy (.-dateoforderlevy dmt)
@@ -2457,9 +2585,9 @@
                              :nameofpersonwhomrecoveryismade (.-nameofpersonwhomrecoveryismade dmt)})
         focus (r/atom nil)]
     (fn [] [o6register-template
-            "o6register Update Form"
-            update-data focus
-            #(o6register-update-form-onclick update-data focus)])))
+           "o6register Update Form"
+           update-data focus
+           #(o6register-update-form-onclick update-data focus)])))
 
 
 (defn o6register-update[id]
@@ -2483,16 +2611,22 @@
 
 (defroute o6register-add-path "/o6register/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [o6register-add-template])))]
+                       (set-key-value :villages (getdata json))
+                       (set-page! [o6register-add-template])))
+        ono6resp (fn [json] ((set-key-value :o6mutations
+                                           (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json)))))))]
+    (http-get (str serverhost "mutations/o6numbers/search") ono6resp)
     (http-get (str serverhost "villages") onres)))
 
 (defroute o6register-upd-path "/o6register/update/:id" [id]
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [o6register-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :o6registers)))])))]
+                       (set-key-value :villages (getdata json))
+                       (set-page! [o6register-update-template id
+                                   (first (filter (fn[obj]
+                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :o6registers)))])))
+        ono6resp (fn [json] ((set-key-value :o6mutations
+                                           (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json)))))))]
+    (http-get (str serverhost "mutations/o6numbers/search") ono6resp)
     (http-get (str serverhost "villages") onres)))
 
 (defn o6register-add [event]
@@ -2516,7 +2650,7 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
-          [:th "Tehsil"]
+          [:th "Sub Divison Name"]
           [:th "Year"]
           [:th  "Mehsil Number"]
           [:th "Date of Orederlevy"]
@@ -2528,7 +2662,7 @@
         [:tbody
          (for [mt o6registers]
            ^{:key (.-id mt)} [:tr
-                              [:td (.-tehsil mt)]
+                              [:td (.-subdivisionname mt)]
                               [:td (.-year mt)]
                               [:td (.-mehsilnumber mt)]
                               [:td (.-dateoforderlevy mt)]
