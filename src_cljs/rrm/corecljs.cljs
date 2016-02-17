@@ -25,6 +25,8 @@
                           :current-page 1
                           :total-pages 1
                           :page-location nil
+                          :districts nil
+                          :subdivisions nil
                           :villages {}
                           :o2mutations {}
                           :o4mutations {}
@@ -171,16 +173,17 @@
                                                     (c/from-string (.-date %)))) data)))
 
 
-(defn get-search-url [mn dt]
-  (let [mnv (st/blank? mn)
-        dtv (st/blank? dt)
-        purl (str serverhost "mutations/search?")]
-    (cond (and (not mnv) dtv ) (str purl "mutationNumber=" mn)
-          (and mnv (not dtv))  (str purl  "value=" dt)
-          :else (str purl "mutationNumber="mn"&value="dt))))
+(defn get-search-url [vid mutno fp
+                      sp nop kkn
+                      o2n tit kn]
+  (let [purl (str serverhost "mutations/search?")]
 
-(defn get-index-url [is-searched-results sel-page mn dt]
-  (cond (= true is-searched-results)(str (get-search-url mn dt)"&pageIndex="sel-page"&pageSize=10")
+    (cond (not (st/blank? mutno)) (str purl "mutationNo="mutno)
+          :else (str purl "villageId="(int vid)"&firstparty="fp"&secondparty="sp"&nameofpo="nop"&khatakhatuninumber="kkn"&o2number="o2n"&title="tit"&khasranumber="kn))))
+
+(defn get-index-url [is-searched-results sel-page vid
+                     mutno fp sp nop kkn o2n tit kn]
+  (cond (= true is-searched-results)(str (get-search-url vid mutno fp sp nop kkn o2n tit kn)"&pageIndex="sel-page"&pageSize=10")
         :else (str serverhost "mutations?pageIndex="sel-page "&pageSize=10")))
 
 (defn get-new-page-data [data current-page total-pages]
@@ -213,8 +216,15 @@
 (def pager-elem (r/adapt-react-class (aget js/ReactBootstrap "Pagination")))
 
 (defn set-pager-data [sel-page-no]
-  (let [mt (.-value (.getElementById js/document "mutationnumber"))
-        v (.-value (.getElementById js/document "dt"))
+  (let [mn   (.-value (.getElementById js/document "mutationnumber"))
+        st   (.-value (.getElementById js/document "stitle"))
+        vid  (.-value (.getElementById js/document "src-vill"))
+        po   (.-value (.getElementById js/document "svillagename"))
+        so2  (.-value (.getElementById js/document "so2number"))
+        knum (.-value (.getElementById js/document "skhasranumber"))
+        kknum (.-value (.getElementById js/document "skhatakhatuninumber"))
+        fp (.-value (.getElementById js/document "snameofthefirstparty"))
+        sp (.-value (.getElementById js/document "snameofthesecondparty"))
         onres (fn[json]
                 (let [dt (getdata json)]
                   (set-key-value :mutations (.-data dt))
@@ -223,7 +233,8 @@
                                  [render-mutations (get-value! :mutations)])))]
     (http-get (get-index-url (get-value! :is-searched-results)
                              (dec (get-value! :current-page))
-                             mt v)
+                             vid mn fp sp po
+                             kknum so2 st knum)
               onres)))
 
 (defn pager [value total-rec]
@@ -289,19 +300,33 @@
 ;;.............. End of Tab Events ......
 
 (defn search [event]
-  (let [mn  (.-value (.getElementById js/document "mutationnumber"))
-        dt  (.-value (.getElementById js/document "dt"))
+  (let [mn   (.-value (.getElementById js/document "mutationnumber"))
+        st   (.-value (.getElementById js/document "stitle"))
+        vid  (.-value (.getElementById js/document "src-vill"))
+        po   (.-value (.getElementById js/document "svillagename"))
+        so2  (.-value (.getElementById js/document "so2number"))
+        knum (.-value (.getElementById js/document "skhasranumber"))
+        kknum (.-value (.getElementById js/document "skhatakhatuninumber"))
+        fp (.-value (.getElementById js/document "snameofthefirstparty"))
+        sp (.-value (.getElementById js/document "snameofthesecondparty"))
         onres (fn [json] (let [data (getdata json)]
                           (set-key-value :mutations (.-data data))
                           (set-key-value :total-pages
                                          (get-total-rec-no (.-pagesCount data)))
-                          (js/console.log (get-value! :total-pages))
-                                                    (set-key-value :page-location
+                          (set-key-value :page-location
                                          [render-mutations (get-value! :mutations)])))]
     (set-key-value :current-page 1)
     (set-key-value :is-searched-results true)
-    (http-get (str (get-search-url mn dt) "&pageIndex=0&pageSize=10")
-              onres)))
+    (http-get (str (get-search-url
+                    vid mn fp sp po
+                    kknum so2 st knum)"&pageIndex=0&pageSize=10") onres)))
+
+
+(defn input [label type id]
+  (row label [:input.form-control {:type type :id id :on-change on-change}]))
+
+;; --------------------------------------------------------------------------
+;; mutation form
 
 
 (defn form-validator [data-set]
@@ -316,7 +341,6 @@
                      :khasranumber [[v/required :message "Field is required"]]
                      :area [[v/required :message "Field is required"]]
                      :khatakhatuninumber [[v/required :message "Field is required"]]
-                     :subdivisionname  [[v/required :message "Field is required"]]
                      :o2number [[v/required :message "Field is required"]]
                      :o4number [[v/required :message "Field is required"]]
                      :o6number [[v/required :message "Field is required"]]
@@ -336,69 +360,6 @@
                           [:div {:style  {:color "red"}}
                            [:b (str (first ((form-validator @data-set) id)))]])
                         [:div])]])))
-
-
-(defn add-form-onclick [data-set focus]
-  (if (= nil (form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid
-                                (int (.-value (.getElementById js/document "districts")))))
-        (let [onres (fn[json]
-                      (secretary/dispatch! "/"))]
-          (http-post (str serverhost "mutations")
-                     onres  (.serialize (Serializer.) (clj->js @data-set)))))
-    (reset! focus "on")))
-
-
-(defn update-form-onclick [data-set focus]
-  (if (= nil (form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid
-                                (int (.-value (.getElementById js/document "districts")))))
-        (let [onres (fn[data]
-                      (secretary/dispatch! "/"))]
-          (http-put (str serverhost "mutations/" (:id @data-set))
-                    onres (.serialize (Serializer.) (clj->js @data-set)))))
-    (reset! focus "on")))
-
-(defn form-cancel [event]
-  (secretary/dispatch! "/"))
-
-(defn on-change [event]
-  (let [ele (.getElementById js/document "id")
-        eval (.-value ele)
-        onresp (fn [json]
-                 ;; (let [dt  (aggre-str (getdata json))]
-                 ;;   (set! (.-value ele) (if(empty? dt) eval dt))))]
-                 (let [dt (getdata json)]
-                   (set-key-value :villages dt)))]
-
-    (set-key-value :villages [])
-    (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval)
-                onresp))))
-
-(defn input [label type id]
-  (row label [:input.form-control {:type type :id id :on-change on-change}]))
-
-(defn get-villages []
-  (let [onres (fn[json]((set-key-value :villages (getdata json))))]
-    (http-get (str serverhost "villages") onres)))
-
-(defn tags-template [data-set]
-  (cond (nil? (:villageid @data-set)) [:select.form-control {:id "districts"}
-                                       (for [d (get-value! :villages)]
-                                         ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)])]
-        :else [:select.form-control {:id "districts" :defaultValue (:villageid @data-set)}
-               (doall (for [d (get-value! :villages)]
-                        ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)]))]))
-
-
-(defn form-input-select [label data-set focus]
-  (let [input-focus (r/atom nil)]
-    (fn []
-      [:div.form-group
-       [:label.col-sm-3.control-label label]
-       [:div#tagdiv.col-sm-6 [tags-template data-set]]
-       [:div.col-sm-3 [:div]]])))
 
 (defn datalist []
   [:datalist {:id "combo"}
@@ -429,14 +390,74 @@
                            [:b (str (first ((form-validator @data-set) id)))]])
                         [:div])]])))
 
+(defn dist-onchange [id]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (set-key-value :subdivisions dt)
+                (set-key-value :villages nil)))]
+    (http-get (str  "http://localhost:9000/districts/" id  "/subdivisions") res)))
+
+(defn dist-sel-tag [id data data-set]
+  [:select.form-control {:id id
+                         :value (@data-set id)
+                         :on-change #(dist-onchange (-> % .-target .-value)) }
+   [:option {:value 0} "--Select--"]
+   (for [d  data]
+     ^{:key (.-id d)}
+     [:option {:value (.-id d)} (.-name d)])])
+
+(defn form-dist-sel [label id opt-data data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label label]
+   [:div.col-sm-6 [dist-sel-tag id opt-data data-set]]
+   [:div.col-sm-3 [:div]]])
+
+(defn sub-onchange [id]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (set-key-value :villages dt)))]
+    (http-get (str  "http://localhost:9000/subdivisions/" id  "/villages") res)))
+
+(defn sub-sel-tag [id data data-set]
+  [:select.form-control {:id id
+                         :value (@data-set id)
+                         :on-change #(sub-onchange (-> % .-target .-value))}
+   [:option {:value 0} "--Select--"]
+   (for [d  data]
+     ^{:key (.-id d) }
+     [:option {:value (.-id d)} (.-subdivisionname d)])])
+
+(defn form-sub-sel [label id opt-data data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label label]
+   [:div.col-sm-6 [sub-sel-tag id opt-data data-set]]
+   [:div.col-sm-3 [:div]]])
+
+
+(defn villages-sel-tag [id data data-set ]
+  [:select.form-control {:id id
+                         :value (@data-set id)
+                         :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
+   [:option {:value 0} "--Select--"]
+   (for [d  data]
+     ^{:key (.-id d) }
+     [:option {:value (.-id d)} (.-villagename d)])])
+
+(defn form-villages-sel [label id opt-data data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label label]
+   [:div.col-sm-6 [villages-sel-tag id opt-data data-set]]
+   [:div.col-sm-3 [:div]]])
+
+
 (defn mutation-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
        [form-input-element :mutationnumber "Mutation Number" "text" data-set focus]
        [form-input-element :nameofthefirstparty "Name of the First Party" "text" data-set focus ]
        [form-input-element :nameofthesecondparty "Name of the Second Party" "text" data-set focus]
@@ -447,22 +468,24 @@
        [form-input-element :khasranumber "Khasra Number" "text" data-set focus]
        [form-input-element :area "Area" "text" data-set focus]
        [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
-       [form-input-select "Village Name" data-set focus]
-       [form-input-element :subdivisionname "Sub division Name" "text" data-set focus]
+       [form-dist-sel "District" :districtid (:districts @storage) data-set]
+       [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
        [form-input-element :o2number "O2 Number" "text" data-set focus]
        [form-input-element :o4number "O4 Number" "text" data-set focus]
        [form-input-element :o6number "O6 Number" "text" data-set focus]
        [form-input-element :racknumber "Rack Number" "text" data-set focus]
        [form-input-element :receiveddate "Received Date" "date" data-set focus]
        [form-input-element :remarks "Remarks" "text" data-set focus]]
-     [:div.box-footer
-      [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]])
+      [:div.box-footer
+       [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
+       [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]])
 
 (defn mutation-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [mutation-template "Mutation Add Form" add-data focus #(add-form-onclick add-data focus)])))
+
 
 (defn mutation-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -476,24 +499,42 @@
                              :khasranumber (.-khasranumber dmt)
                              :khatakhatuninumber (.-khasranumber dmt)
                              :area (.-area dmt)
-                             :subdivisionname (.-subdivisionname dmt)
-                             :villageid (.-villageid dmt)
                              :o2number (.-o2number dmt)
                              :o4number (.-o4number dmt)
                              :o6number (.-o6number dmt)
                              :racknumber (.-racknumber dmt)
                              :receiveddate (.-receiveddate dmt)
                              :remarks (.-remarks dmt)
-                             :villagename (.-villagename dmt)
-                             :districtname (.-districtname dmt)
+                             :villageid (.-villageid dmt)
+                             :subdivisionid (.-subdivisionid dmt)
+                             :districtid (.-districtid dmt)
                              :isactive true})
         focus (r/atom nil)]
     (fn [] [mutation-template
             "Mutation Update Form"
             update-data
             focus
-            #(update-form-onclick update-data focus)])))
+            #(update-form-onclick update-data focus) sub-division-id])))
 
+
+(defn add-form-onclick [data-set focus]
+  (if (= nil (form-validator @data-set))
+    (let [onres (fn[json]
+                  (secretary/dispatch! "/"))]
+      (http-post (str serverhost "mutations")
+                     onres  (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
+
+(defn update-form-onclick [data-set focus]
+  (if (= nil (form-validator @data-set))
+     (let [onres (fn[data]
+                      (secretary/dispatch! "/"))]
+          (http-put (str serverhost "mutations/" (:id @data-set))
+                    onres (.serialize (Serializer.) (clj->js @data-set)))))
+    (reset! focus "on"))
+
+(defn form-cancel [event]
+  (secretary/dispatch! "/"))
 
 (defn click-update[id]
   (secretary/dispatch! (str "/mutations/update/" id)))
@@ -519,105 +560,94 @@
     (http-get (str serverhost "mutations?pageIndex=0&pageSize=10") onres)))
 
 
-(defn districtlist []
-  [:datalist {:id "distcombo"}
-   (let [district ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
-     (for [i district]
-       ^{:key i}
-       [:option {:value i}]))])
+(defn src-dist-sel-tag []
+  [:select.form-control {:id :src-dist
+                         :placeholder "District Name"
+                         :on-change #(dist-onchange (-> % .-target .-value)) }
+   [:option {:value 0} "--Select--"]
+   (for [d  (@storage :districts)]
+     ^{:key (.-id d)}
+     [:option {:value (.-id d)} (.-name d)])])
 
-(defn divisionlist []
-  [:datalist {:id "divcombo"}
-   (let [division ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
-     (for [i division]
-       ^{:key i}
-       [:option {:value i}]))])
+(defn src-sub-sel-tag []
+  [:select.form-control {:id :src-sub
+                         :placeholder "Sub Division Name"
+                         :on-change  #(sub-onchange (-> % .-target .-value)) }
+   [:option {:value 0} "--Select--"]
+   (for [d  (@storage :subdivisions)]
+     ^{:key (.-id d)}
+     [:option {:value (.-id d)} (.-subdivisionname d)])])
 
-(defn villagelist []
-  [:datalist {:id "villagecombo"}
-   (let [village ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
-     (for [i village]
-       ^{:key i}
-       [:option {:value i}]))])
+(defn src-vill-sel-tag []
+  [:select.form-control {:id :src-vill
+                         :placeholder "Village Name"
+                          }
+   [:option {:value 0} "--Select--"]
+   (for [d  (@storage :villages)]
+     ^{:key (.-id d)}
+     [:option {:value (.-id d)} (.-villagename d)])])
 
-(defn nameofpolist []
-  [:datalist {:id "nameofpocombo"}
-   (let [po ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
-     (for [i po]
-       ^{:key i}
-       [:option {:value i}]))])
 
 (defn render-mutations [mutations]
   [:div
-   ;; [:div.padding]
-   ;; [:div.page-header [:h1 "Record Room Management System"]]
-   [:div#add]
-   [:div#update]
    [:div {:class "box"}
     [:div {:class "box-header"}
      [:h3 "List of Mutations"]]
-      [:div.col-md-12
-       ;; [:div.col-sm-2 [:input.form-control {:id "dt1" :type "date"}]]
-       ;; [:div.col-sm-2 [:input.form-control {:id "dt2" :type "date"}]]
-       [:div.form-group
-        [:div.row
-         [:div.col-sm-2 "Mutation Number"
-          [:input.form-control {:id "mutationnumber"
+    [:div.col-md-12
+     [:div.form-group
+      [:div.row
+       [:div.col-sm-2 "Mutation Number"
+        [:input.form-control {:id "mutationnumber"
                               :type "text"
-                                :placeholder "Enter search by mutationnumber"}]]
-         [:div.col-sm-2 "Enter Search Text"
-          [:input.form-control {:id "dt" :type "text"
-                                               :placeholder "Enter search text.."}]]]]
-       [:div.form-group
-        [:div.row
-         [:div.col-sm-2 "District Name"
-          [:input.form-control {:id "sdistrictname"
-                                :list "combo"
-                                :placeholder "District Name"}[districtlist]]]
-         [:div.col-sm-2 "Sub Division Name"
-          [:input.form-control {:id "ssubdivisionname"
-                                :list "combo"
-                                :placeholder "Sub Division Name"}[divisionlist]]]
-         [:div.col-sm-2 "Village Name"
-          [:input.form-control {:id "svillagename"
-                                :list "combo"
-                                :placeholder "Village Name"}[villagelist]]]
-        [:div.col-sm-2 "O2 Number"
-         [:input.form-control {:id "so2number"
-                               :type "text"
-                               :placeholder "O2 Number"}]]
-        [:div.col-sm-2 "Name of the First Party"
-         [:input.form-control {:id "snameofthefirstparty"
-                               :type "text"
-                               :placeholder "Name of the First Party"}]]]]
-       [:div.form-group
-        [:div.row
-         [:div.col-sm-2 "Name of the Second Party"
-          [:input.form-control {:id "snameofthesecondparty"
-                                :type "text"
-                                :placeholder "Name of the Second Party"}]]
-         [:div.col-sm-2 "Name Of P.O"
-          [:input.form-control {:id "svillagename"
-                                :list "combo"
-                                :placeholder "Name Of P.O"}[nameofpolist]]]
-          [:div.col-sm-2 "Title"
-           [:input.form-control {:id "stitle"
-                                 :type "text"
-                                 :placeholder "Title"}]]
-         [:div.col-sm-2 "Khasra Number"
-          [:input.form-control {:id "skhasranumber"
-                                :type "text"
-                                :placeholder "Khasra Number"}]]
-         [:div.col-sm-2 "Khata khatuni Number"
-          [:input.form-control {:id "skhatakhatuninumber"
-                                :type "text"
-                                :placeholder "Khata Khatuni Number"}]]]
-        [:div.form-group
-         [:div.row
-          [:div.col-sm-2.col-md-offset-5 {:style {:padding-top "20px"}}
-           [:input.btn.btn-primary {:type "button" :value "Search" :on-click search}]
-           [:input.btn.btn-primary {:type "button" :value "Add" :on-click add}]
-           [:input.btn.btn-primary {:id "getall" :type "button" :value "Refresh":on-click get-all-click}]]]]]]
+                              :placeholder "Enter search by mutationnumber"}]]
+       [:div.col-sm-2 "Enter Search Text"
+        [:input.form-control {:id "dt" :type "text"
+                              :placeholder "Enter search text.."}]]]]
+
+     [:div.form-group
+      [:div.row
+       [:div.col-sm-2 "Title"
+        [:input.form-control {:id "stitle"
+                              :type "text"
+                              :placeholder "Title"}]]
+       [:div.col-sm-2 "District Name"
+        [src-dist-sel-tag]]
+       [:div.col-sm-2 "Sub Division Name"
+        [src-sub-sel-tag]]
+       [:div.col-sm-2 "Village Name"
+        [src-vill-sel-tag]]
+       [:div.col-sm-2 "Name Of P.O"
+        [:input.form-control {:id "svillagename"
+                              :list "combo"
+                              :placeholder "Name Of P.O"}[datalist]]]]]
+     [:div.form-group
+      [:div.row
+       [:div.col-sm-2 "O2 Number"
+        [:input.form-control {:id "so2number"
+                              :type "text"
+                              :placeholder "O2 Number"}]]
+       [:div.col-sm-2 "Khasra Number"
+        [:input.form-control {:id "skhasranumber"
+                              :type "text"
+                              :placeholder "Khasra Number"} ]]
+       [:div.col-sm-2 "Khata khatuni Number"
+        [:input.form-control {:id "skhatakhatuninumber"
+                              :type "text"
+                              :placeholder "Khata Khatuni Number"}]]
+       [:div.col-sm-2 "Name of the First Party"
+        [:input.form-control {:id "snameofthefirstparty"
+                              :type "text"
+                              :placeholder "Name of the First Party"}]]
+       [:div.col-sm-2 "Name of the Second Party"
+        [:input.form-control {:id "snameofthesecondparty"
+                              :type "text"
+                              :placeholder "Name of the Second Party"}]]]]
+     [:div.form-group
+      [:div.row
+       [:div.col-sm-2.col-md-offset-5 {:style {:padding-top "20px"}}
+        [:input.btn.btn-primary {:type "button" :value "Search" :on-click search}]
+        [:input.btn.btn-primary {:type "button" :value "Add" :on-click add}]
+        [:input.btn.btn-primary {:id "getall" :type "button" :value "Refresh":on-click get-all-click}]]]]]
 
     [:div {:class "box-body"}
      [:table {:class "table table-bordered table-striped dataTable"}
@@ -628,7 +658,7 @@
         [:th "Name of The SecondParty"]
         [:th "Date of Institution"]
         [:th "Name of P.O"]
-        [:th "Name of Districts"]
+        ;;  [:th "Name of Districts"]
         [:th "Name of Village"]
         [:th "SubDivisionName"]
         [:th " "]
@@ -640,20 +670,15 @@
                             [:td (.-mutationnumber mt)]
                             [:td (.-nameofthefirstparty mt)]
                             [:td (.-nameofthesecondparty mt)]
-                            ;;  [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-dateofinstitution dn)))]
                             [:td (.-dateofinstitution mt)]
                             [:td (.-nameofpo mt)]
-                            [:td (.-districtname mt)]
+                            ;; [:td (.-districtname mt)]
                             [:td (.-villagename mt)]
                             [:td (.-subdivisionname mt)]
-                            ;; [:td [:input {:type "button" :on-click #(click-update(.-id dn))
-                            ;;               :class "glyphicon glyphicon-edit" :value "Update"}
-                            ;;       ]]
                             [:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                            ;; [:td [:input {:type "button" :on-click #(delete(.-id dn))
-                            ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
                             [:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]])]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
+     [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
+
 
 (defroute mutations-list "/mutations" []
   (let [onres (fn [json]
@@ -661,23 +686,47 @@
                   (set-key-value :mutations (.-data dt))
                   (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
                   (set-key-value :page-location  [render-mutations (get-value! :mutations)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+          (set-key-value :is-searched-results false)
+      (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 (defroute documents-path "/mutations/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
+                        (set-key-value :districts (getdata json))
                         (set-page! [mutation-add-template])))]
-    (http-get (str serverhost "villages") onres)))
+    (http-get (str serverhost "districts") onres)))
 
 (defroute documents-path1 "/mutations/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [mutation-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :mutations)))])))]
-    (http-get (str serverhost "villages") onres)))
+  (let [upd-data (first (filter (fn[obj] (=(.-id obj) (.parseInt js/window id))) (get-value! :mutations)))
+
+        ;; sub-id  (r/atom nil)
+        ;; dist-id  (r/atom nil)
+
+        vill-res (fn[json](set-key-value :villages (getdata json)))
+        sub-res (fn[json](set-key-value :subdivisions (getdata json)))
+        dist-res (fn[json] ((set-key-value :districts (getdata json))
+                            (set-page! [mutation-update-template id upd-data])))]
+    (do
+      ;; (http-get (str serverhost "villages/" (.-villageid upd-data))
+      ;;           (fn [json]
+      ;;             (let [dt (getdata json)]
+      ;;               (reset! sub-id dt ))))
+
+      ;; (http-get (str  serverhost "subdivisions/" (.-subdivisionid sub-id))
+      ;;             (fn [json]
+      ;;               (reset! dist-id (getdata json))))
+
+      ;; (js/console.log upd-data)
+      ;; (js/console.log sub-id)
+      ;; (js/console.log )
+      (http-get (str serverhost "districts") dist-res)
+      ;; (http-get (str serverhost "districts" (.-districtid dist-id) "subdivisions") sub-res)
+      ;; (http-get (str serverhost "subdivisions" (.-subdivionid sub-id) "villages") vill-res)
+      (http-get (str serverhost "villages") vill-res)
+      (http-get (str serverhost "subdivisions") sub-res)
+      )))
+
+
 
 ;; ---------------------------------------------------------
 ;; rvenue-records
@@ -730,13 +779,13 @@
 
 
 (defn revenue-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
        [revenue-input-int-row :serialnumber "Serial Number" "text" data-set focus]
        [revenue-input-select "Village Name" data-set focus ]
        [revenue-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
@@ -744,9 +793,9 @@
        [revenue-input-row :year "Year" "date" data-set focus]
        [revenue-input-row :racknumber "Rack Number" "text" data-set focus]
        [revenue-input-row :description "description" "text" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click revenue-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click revenue-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 
 (defn revenue-add-form-onclick [data-set focus]
@@ -798,10 +847,10 @@
 (defn revenue-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [revenue-template 
-    	    "Revenue Add Form" 
-    	      add-data focus
-    	       #(revenue-add-form-onclick add-data focus)])))
+    (fn [] [revenue-template
+           "Revenue Add Form"
+           add-data focus
+           #(revenue-add-form-onclick add-data focus)])))
 
 (defn revenue-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -816,9 +865,9 @@
                              :isactive true})
         focus (r/atom nil)]
     (fn [] [revenue-template
-            "Revenue Update Form"
-            update-data focus
-            #(revenue-update-form-onclick update-data focus)])))
+           "Revenue Update Form"
+           update-data focus
+           #(revenue-update-form-onclick update-data focus)])))
 
 
 (defn revenue-update[id]
@@ -866,7 +915,7 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click revenue-add}] 
+                :class "btn btn-primary" :on-click revenue-add}]
        ;; [:input {:id "getall" :type "button" :value "Refresh"
        ;;          :class "btn btn-primary" :on-click get-all-click}]
        ]
@@ -945,13 +994,13 @@
 
 
 (defn khasragirdwani-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
        [khasragirdwani-input-int-row :serialnumber "Serial Number" "text" data-set focus]
        [khasragirdwani-input-select "Village Name" data-set focus ]
        [khasragirdwani-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
@@ -959,9 +1008,9 @@
        [khasragirdwani-input-row :year "Year" "date" data-set focus]
        [khasragirdwani-input-row :racknumber "Rack Number" "text" data-set focus]
        [khasragirdwani-input-row :description "description" "text" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click khasragirdwani-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click khasragirdwani-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 
 (defn khasragirdwani-add-form-onclick [data-set focus]
@@ -1016,10 +1065,10 @@
 (defn khasragirdwani-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [khasragirdwani-template 
-          "khasragirdwani Add Form" 
-            add-data focus
-             #(khasragirdwani-add-form-onclick add-data focus)])))
+    (fn [] [khasragirdwani-template
+           "khasragirdwani Add Form"
+           add-data focus
+           #(khasragirdwani-add-form-onclick add-data focus)])))
 
 (defn khasragirdwani-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -1085,7 +1134,7 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click khasragirdwani-add}] 
+                :class "btn btn-primary" :on-click khasragirdwani-add}]
        ;; [:input {:id "getall" :type "button" :value "Refresh"
        ;;          :class "btn btn-primary" :on-click get-all-click}]
        ]
@@ -1163,13 +1212,13 @@
 
 
 (defn masavi-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
        [masavi-input-int-row :serialnumber "Serial Number" "text" data-set focus]
        [masavi-input-select "Village Name" data-set focus ]
        [masavi-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
@@ -1177,9 +1226,9 @@
        [masavi-input-row :year "Year" "date" data-set focus]
        [masavi-input-row :racknumber "Rack Number" "text" data-set focus]
        [masavi-input-row :description "description" "text" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click masavi-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click masavi-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 
 (defn masavi-add-form-onclick [data-set focus]
@@ -1231,10 +1280,10 @@
 (defn masavi-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [masavi-template 
-          "masavi Add Form" 
-            add-data focus
-             #(masavi-add-form-onclick add-data focus)])))
+    (fn [] [masavi-template
+           "masavi Add Form"
+           add-data focus
+           #(masavi-add-form-onclick add-data focus)])))
 
 (defn masavi-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -1298,7 +1347,7 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click masavi-add}] 
+                :class "btn btn-primary" :on-click masavi-add}]
        ;; [:input {:id "getall" :type "button" :value "Refresh"
        ;;          :class "btn btn-primary" :on-click get-all-click}]
        ]
@@ -1377,13 +1426,13 @@
 
 
 (defn consolidation-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
        [consolidation-input-int-row :serialnumber "Serial Number" "text" data-set focus]
        [consolidation-input-select "Village Name" data-set focus ]
        [consolidation-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
@@ -1391,9 +1440,9 @@
        [consolidation-input-row :year "Year" "date" data-set focus]
        [consolidation-input-row :racknumber "Rack Number" "text" data-set focus]
        [consolidation-input-row :description "description" "text" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click consolidation-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click consolidation-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 
 (defn consolidation-add-form-onclick [data-set focus]
@@ -1445,10 +1494,10 @@
 (defn consolidation-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [consolidation-template 
-          "consolidation Add Form" 
-            add-data focus
-             #(consolidation-add-form-onclick add-data focus)])))
+    (fn [] [consolidation-template
+           "consolidation Add Form"
+           add-data focus
+           #(consolidation-add-form-onclick add-data focus)])))
 
 (defn consolidation-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -1512,7 +1561,7 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click consolidation-add}] 
+                :class "btn btn-primary" :on-click consolidation-add}]
        ;; [:input {:id "getall" :type "button" :value "Refresh"
        ;;          :class "btn btn-primary" :on-click get-all-click}]
        ]
@@ -1590,13 +1639,13 @@
 
 
 (defn fieldbook-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
        [fieldbook-input-int-row :serialnumber "Serial Number" "text" data-set focus]
        [fieldbook-input-select "Village Name" data-set focus ]
        [fieldbook-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
@@ -1604,9 +1653,9 @@
        [fieldbook-input-row :year "Year" "date" data-set focus]
        [fieldbook-input-row :racknumber "Rack Number" "text" data-set focus]
        [fieldbook-input-row :description "description" "text" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click fieldbook-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click fieldbook-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 
 (defn fieldbook-add-form-onclick [data-set focus]
@@ -1658,10 +1707,10 @@
 (defn fieldbook-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [fieldbook-template 
-          "fieldbook Add Form" 
-            add-data focus
-             #(fieldbook-add-form-onclick add-data focus)])))
+    (fn [] [fieldbook-template
+           "fieldbook Add Form"
+           add-data focus
+           #(fieldbook-add-form-onclick add-data focus)])))
 
 (defn fieldbook-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -1725,7 +1774,7 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click fieldbook-add}] 
+                :class "btn btn-primary" :on-click fieldbook-add}]
        ;; [:input {:id "getall" :type "button" :value "Refresh"
        ;;          :class "btn btn-primary" :on-click get-all-click}]
        ]
@@ -1803,31 +1852,31 @@
 
 
 (defn misc-template [doc-name data-set focus save-function]
- [:div.container
-  [:div.col-md-12
-   [:div.box.box-info
-    [:div.box-header.with-border 
-     [:h2.box-title doc-name]]
-    [:div.form-horizontal
-     [:div.box-body
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
        [misc-input-row :filenumber "File Numbar" "text" data-set focus]
        [misc-input-row :subject "Subject" "text" data-set focus]
        [misc-input-row :title "Title" "text" data-set focus]
        [misc-input-row :remarks "Remarks" "text" data-set focus]
        [misc-input-row :dispatcheddate "Dispatched Date" "date" data-set focus]
        [misc-input-row :receiveddate "Recevied Date" "date" data-set focus]
-    [:div.box-footer
-      [:button.btn.btn-default {:on-click misc-form-cancel} "Cancel"]
-      [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+       [:div.box-footer
+        [:button.btn.btn-default {:on-click misc-form-cancel} "Cancel"]
+        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
 
 (defn misc-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [misc-template 
-              "misc Add Form" 
-               add-data
-               focus
-               #(misc-add-form-onclick add-data focus)])))
+    (fn [] [misc-template
+           "misc Add Form"
+           add-data
+           focus
+           #(misc-add-form-onclick add-data focus)])))
 
 (defn misc-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -1840,10 +1889,10 @@
                              })
         focus (r/atom nil)]
     (fn [] [misc-template
-            "misc Update Form"
-            update-data 
-            focus
-            #(misc-update-form-onclick update-data focus)])))
+           "misc Update Form"
+           update-data
+           focus
+           #(misc-update-form-onclick update-data focus)])))
 
 
 (defn misc-add-form-onclick [data-set focus]
@@ -2005,7 +2054,8 @@
     (swap! data-set assoc :nameofthefirstparty nil)
     (swap! data-set assoc :racknumber nil)
     (swap! data-set assoc :mutationid nil)
-    (swap! data-set assoc :villagename "")))
+    (swap! data-set assoc :villagename "")
+    (swap! data-set assoc :o2number nil)))
 
 (defn on-o2-change [data-set]
   (let [selval (.-value (.getElementById js/document "O2-select"))
@@ -2029,7 +2079,7 @@
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
-     [:div.box-header.with-border 
+     [:div.box-header.with-border
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
@@ -2096,8 +2146,8 @@
 (defn o2register-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [o2register-template 
-           "o2register Add Form" 
+    (fn [] [o2register-template
+           "o2register Add Form"
            add-data focus
            #(o2register-add-form-onclick add-data focus)])))
 
@@ -2148,8 +2198,8 @@
   (let [onres (fn[json](
                        (set-key-value :villages (getdata json))
                        (set-page! [o2register-add-template])))
-        ono2resp (fn [json] ((set-key-value :o2mutations
-                                           (clj->js (cons "select" (js->clj (getdata json)))))))]
+        ono2resp (fn [json] (set-key-value :o2mutations
+                                          (clj->js (cons "select" (js->clj (getdata json))))))]
     (http-get (str serverhost "mutations/o2numbers/search") ono2resp)
     (http-get (str serverhost "villages") onres)))
 
@@ -2159,8 +2209,8 @@
                        (set-page! [o2register-update-template id
                                    (first (filter (fn[obj]
                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :o2registers)))])))
-        ono2resp (fn [json] ((set-key-value :o2mutations
-                                           (clj->js (cons "select" (js->clj (getdata json)))))))]
+        ono2resp (fn [json] (set-key-value :o2mutations
+                                          (clj->js (cons "select" (js->clj (getdata json))))))]
     (http-get (str serverhost "mutations/o2numbers/search") ono2resp)
     (http-get (str serverhost "villages") onres)))
 
@@ -2176,7 +2226,7 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click o2register-add}] 
+                :class "btn btn-primary" :on-click o2register-add}]
        ;; [:input {:id "getall" :type "button" :value "Refresh"
        ;;          :class "btn btn-primary" :on-click get-all-click}]
        ]
@@ -2252,7 +2302,7 @@
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
-     [:div.box-header.with-border 
+     [:div.box-header.with-border
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
@@ -2271,11 +2321,11 @@
 (defn o4register-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [o4register-template 
-              "o4register Add Form" 
-               add-data
-               focus
-               #(o4register-add-form-onclick add-data focus)])))
+    (fn [] [o4register-template
+           "o4register Add Form"
+           add-data
+           focus
+           #(o4register-add-form-onclick add-data focus)])))
 
 (defn o4register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -2293,7 +2343,7 @@
         focus (r/atom nil)]
     (fn [] [o4register-template
            "o4register Update Form"
-           update-data 
+           update-data
            focus
            #(o4register-update-form-onclick update-data focus)])))
 
@@ -2315,11 +2365,12 @@
     (swap! data-set assoc :khasranumber nil)
     (swap! data-set assoc :area nil)
     (swap! data-set assoc :mutationid nil)
-    (swap! data-set assoc :villagename "")))
+    (swap! data-set assoc :villagename "")
+    (swap! data-set assoc :o4number nil)))
 
 (defn on-o4-change [data-set]
   (let [selval (.-value (.getElementById js/document "O4-select"))
-        onres (fn [json] (let [d (first (getdata json))]
+        onres (fn [json] (let [d (aget (getdata json) 0)]
                           (set-o4-fields data-set d)))]
     (if (= selval "select") (reset-o4-fields data-set)
         (http-get (str serverhost "o4registers/"selval"/mutations")
@@ -2345,7 +2396,7 @@
 
 
 (defn o4register-update-form-onclick [data-set focus]
-
+  (reset! data-set (assoc @data-set :o4number  (.-value (.getElementById js/document "O4-select"))))
   (if (= nil (o4register-form-validator @data-set))
     (let [onres (fn[data] (secretary/dispatch! "/o4register"))]
       (http-put (str serverhost "o4registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
@@ -2380,14 +2431,14 @@
   (let [onres (fn[json](
                        (set-key-value :villages (getdata json))
                        (set-page! [o4register-add-template])))
-        ono4resp (fn [json] ((set-key-value :o4mutations
-                                           (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json)))))))]
+        ono4resp (fn [json] (set-key-value :o4mutations
+                                          (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json))))))]
     (http-get (str serverhost "mutations/o4numbers/search") ono4resp)
     (http-get (str serverhost "villages") onres)))
 
 (defroute o4register-upd-path "/o4register/update/:id" [id]
-  (let [ono4resp (fn [json] ((set-key-value :o4mutations
-                                           (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json)))))))]
+  (let [ono4resp (fn [json] (set-key-value :o4mutations
+                                          (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json))))))]
     (http-get (str serverhost "mutations/o4numbers/search") ono4resp)
     (set-page! [o4register-update-template id
                 (first (filter (fn[obj]
@@ -2404,7 +2455,7 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click o4register-add}] 
+                :class "btn btn-primary" :on-click o4register-add}]
        ;; [:input {:id "getall" :type "button" :value "Refresh"
        ;;          :class "btn btn-primary" :on-click get-all-click}]
        ]
@@ -2418,8 +2469,8 @@
           [:th "Number and Date of Order"]
           [:th "Khasra Number"]
           [:th "Area"]
-          [:th "Revenue of Share of Plots Transfered"] 
-          [:th "Name and Description of the Persons Removed"]         
+          [:th "Revenue of Share of Plots Transfered"]
+          [:th "Name and Description of the Persons Removed"]
           [:th " "]
           [:th " "]
           ]]
@@ -2456,7 +2507,8 @@
   (do
     (swap! data-set assoc :subdivisionname nil)
     (swap! data-set assoc :mutationid nil)
-    (swap! data-set assoc :villagename "")))
+    (swap! data-set assoc :villagename "")
+    (swap! data-set assoc :o6number nil)))
 
 (defn on-o6-change [data-set]
   (let [selval (.-value (.getElementById js/document "O6-select"))
@@ -2505,10 +2557,10 @@
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
-     [:div.box-header.with-border 
+     [:div.box-header.with-border
       [:h2.box-title doc-name]]
      [:div.form-horizontal
-      [:div.box-body 
+      [:div.box-body
        [o6-select data-set]
        [o6register-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
        [o6register-input-row :year "Year" "date" data-set focus]
@@ -2532,7 +2584,7 @@
 
 (defn o6register-update-form-onclick [data-set focus]
   (if (= nil (o6register-form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "o6register-districts")))))
+    (do (reset! data-set (assoc @data-set :o6number (.-value (.getElementById js/document "O6-select"))))
         (let [onres (fn[data] (secretary/dispatch! "/o6register"))]
           (http-put (str serverhost "o6registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
@@ -2568,10 +2620,10 @@
 (defn o6register-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [o6register-template 
-          "o6register Add Form" 
-            add-data focus
-             #(o6register-add-form-onclick add-data focus)])))
+    (fn [] [o6register-template
+           "o6register Add Form"
+           add-data focus
+           #(o6register-add-form-onclick add-data focus)])))
 
 (defn o6register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -2613,8 +2665,8 @@
   (let [onres (fn[json](
                        (set-key-value :villages (getdata json))
                        (set-page! [o6register-add-template])))
-        ono6resp (fn [json] ((set-key-value :o6mutations
-                                           (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json)))))))]
+        ono6resp (fn [json] (set-key-value :o6mutations
+                                          (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json))))))]
     (http-get (str serverhost "mutations/o6numbers/search") ono6resp)
     (http-get (str serverhost "villages") onres)))
 
@@ -2624,8 +2676,8 @@
                        (set-page! [o6register-update-template id
                                    (first (filter (fn[obj]
                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :o6registers)))])))
-        ono6resp (fn [json] ((set-key-value :o6mutations
-                                           (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json)))))))]
+        ono6resp (fn [json] (set-key-value :o6mutations
+                                          (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json))))))]
     (http-get (str serverhost "mutations/o6numbers/search") ono6resp)
     (http-get (str serverhost "villages") onres)))
 
@@ -2641,7 +2693,7 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click o6register-add}] 
+                :class "btn btn-primary" :on-click o6register-add}]
        ;; [:input {:id "getall" :type "button" :value "Refresh"
        ;;          :class "btn btn-primary" :on-click get-all-click}]
        ]
@@ -2691,9 +2743,12 @@
                 (let [dt (getdata json)]
                   (set-key-value :mutations (.-data dt))
                   (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-mutations (get-value! :mutations)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+                  (set-key-value :page-location  [render-mutations (get-value! :mutations)])))
+        dist-res (fn[json] (set-key-value :districts (getdata json)))]
+    (do
+      (set-key-value :is-searched-results false)
+      (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)
+      (http-get (str serverhost "districts") dist-res))))
 
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
