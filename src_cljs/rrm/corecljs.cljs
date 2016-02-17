@@ -34,7 +34,7 @@
                           :is-searched-results false
                           :user nil}))
 
-(def serverhost "http://localhost:9000/")
+(def serverhost "http://192.168.0.114:9000/")
 
 (defn set-key-value [k v]
   (reset! storage (assoc @storage k v)))
@@ -345,8 +345,9 @@
                      :o4number [[v/required :message "Field is required"]]
                      :o6number [[v/required :message "Field is required"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :receiveddate [[v/required :message "Field is required"]]
-                     :remarks [[v/required :message "Field is required"]])))
+                     ;; :receiveddate [[v/required :message "Field is required"]]
+                     ;; :remarks [[v/required :message "Field is required"]]
+                     )))
 
 (defn form-input-element [id label ttype data-set focus]
   (let [input-focus (r/atom nil)]
