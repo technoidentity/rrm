@@ -390,17 +390,19 @@
                            [:b (str (first ((form-validator @data-set) id)))]])
                         [:div])]])))
 
-(defn dist-onchange [id]
+(defn dist-onchange [id val data-set]
   (let [res (fn [json]
               (let [dt (getdata json)]
                 (set-key-value :subdivisions dt)
                 (set-key-value :villages nil)))]
-    (http-get (str  "http://localhost:9000/districts/" id  "/subdivisions") res)))
+    (do (http-get (str  serverhost "districts/" val  "/subdivisions") res)
+        (swap! data-set assoc id val)
+        )))
 
 (defn dist-sel-tag [id data data-set]
   [:select.form-control {:id id
                          :value (@data-set id)
-                         :on-change #(dist-onchange (-> % .-target .-value)) }
+                         :on-change #(dist-onchange id (-> % .-target .-value) data-set) }
    [:option {:value 0} "--Select--"]
    (for [d  data]
      ^{:key (.-id d)}
@@ -412,16 +414,18 @@
    [:div.col-sm-6 [dist-sel-tag id opt-data data-set]]
    [:div.col-sm-3 [:div]]])
 
-(defn sub-onchange [id]
+(defn sub-onchange [id val data-set]
   (let [res (fn [json]
               (let [dt (getdata json)]
                 (set-key-value :villages dt)))]
-    (http-get (str  "http://localhost:9000/subdivisions/" id  "/villages") res)))
+    (do (http-get (str serverhost "subdivisions/" val  "/villages") res)
+        (swap! data-set assoc id val)
+        )))
 
 (defn sub-sel-tag [id data data-set]
   [:select.form-control {:id id
                          :value (@data-set id)
-                         :on-change #(sub-onchange (-> % .-target .-value))}
+                         :on-change #(sub-onchange  id (-> % .-target .-value) data-set)}
    [:option {:value 0} "--Select--"]
    (for [d  data]
      ^{:key (.-id d) }
@@ -520,17 +524,19 @@
 (defn add-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
     (let [onres (fn[json]
-                  (secretary/dispatch! "/"))]
+                  (secretary/dispatch! "/"))
+          data (swap! data-set dissoc :districtid :subdivisionid)]
       (http-post (str serverhost "mutations")
-                     onres  (.serialize (Serializer.) (clj->js @data-set))))
+                     onres  (.serialize (Serializer.) (clj->js data))))
     (reset! focus "on")))
 
 (defn update-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
      (let [onres (fn[data]
-                      (secretary/dispatch! "/"))]
+                   (secretary/dispatch! "/"))
+           data (swap! data-set dissoc :districtid :subdivisionid)]
           (http-put (str serverhost "mutations/" (:id @data-set))
-                    onres (.serialize (Serializer.) (clj->js @data-set)))))
+                    onres (.serialize (Serializer.) (clj->js data)))))
     (reset! focus "on"))
 
 (defn form-cancel [event]
@@ -560,19 +566,32 @@
     (http-get (str serverhost "mutations?pageIndex=0&pageSize=10") onres)))
 
 
+(defn src-dist-onchange [val]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (set-key-value :subdivisions dt)
+                (set-key-value :villages nil)))]
+    (http-get (str  serverhost "districts/" val  "/subdivisions") res)))
+
 (defn src-dist-sel-tag []
   [:select.form-control {:id :src-dist
                          :placeholder "District Name"
-                         :on-change #(dist-onchange (-> % .-target .-value)) }
+                         :on-change #(src-dist-onchange (-> % .-target .-value)) }
    [:option {:value 0} "--Select--"]
    (for [d  (@storage :districts)]
      ^{:key (.-id d)}
      [:option {:value (.-id d)} (.-name d)])])
 
+(defn src-sub-onchange [ val]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (set-key-value :villages dt)))]
+    (http-get (str serverhost "subdivisions/" val  "/villages") res)))
+
 (defn src-sub-sel-tag []
   [:select.form-control {:id :src-sub
                          :placeholder "Sub Division Name"
-                         :on-change  #(sub-onchange (-> % .-target .-value)) }
+                         :on-change  #(src-sub-onchange (-> % .-target .-value)) }
    [:option {:value 0} "--Select--"]
    (for [d  (@storage :subdivisions)]
      ^{:key (.-id d)}
@@ -587,45 +606,52 @@
      ^{:key (.-id d)}
      [:option {:value (.-id d)} (.-villagename d)])])
 
+(def button-tool-bar (r/adapt-react-class (aget js/ReactBootstrap "ButtonToolbar")))
+(def button (r/adapt-react-class (aget js/ReactBootstrap "Button")))
 
 (defn render-mutations [mutations]
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of Mutations"]]
+     [:div.page-header [:h3 "List of Mutations"]]]
     [:div.col-md-12
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "Mutation Number"
         [:input.form-control {:id "mutationnumber"
                               :type "text"
-                              :placeholder "Enter search by mutationnumber"}]]
-       [:div.col-sm-2 "Enter Search Text"
-        [:input.form-control {:id "dt" :type "text"
-                              :placeholder "Enter search text.."}]]]]
-
+                              :placeholder "Enter search by mutationnumber"}]]]]
      [:div.form-group
       [:div.row
-       [:div.col-sm-2 "Title"
-        [:input.form-control {:id "stitle"
-                              :type "text"
-                              :placeholder "Title"}]]
        [:div.col-sm-2 "District Name"
         [src-dist-sel-tag]]
        [:div.col-sm-2 "Sub Division Name"
         [src-sub-sel-tag]]
        [:div.col-sm-2 "Village Name"
         [src-vill-sel-tag]]
-       [:div.col-sm-2 "Name Of P.O"
-        [:input.form-control {:id "svillagename"
-                              :list "combo"
-                              :placeholder "Name Of P.O"}[datalist]]]]]
-     [:div.form-group
-      [:div.row
        [:div.col-sm-2 "O2 Number"
         [:input.form-control {:id "so2number"
                               :type "text"
                               :placeholder "O2 Number"}]]
+       [:div.col-sm-2 "Name of the First Party"
+        [:input.form-control {:id "snameofthefirstparty"
+                              :type "text"
+                              :placeholder "Name of the First Party"}]]]]
+
+     [:div.form-group
+      [:div.row
+       [:div.col-sm-2 "Name of the Second Party"
+        [:input.form-control {:id "snameofthesecondparty"
+                              :type "text"
+                              :placeholder "Name of the Second Party"}]]
+       [:div.col-sm-2 "Name Of P.O"
+        [:input.form-control {:id "svillagename"
+                              :list "combo"
+                              :placeholder "Name Of P.O"}[datalist]]]
+       [:div.col-sm-2 "Title"
+        [:input.form-control {:id "stitle"
+                              :type "text"
+                              :placeholder "Title"}]]
        [:div.col-sm-2 "Khasra Number"
         [:input.form-control {:id "skhasranumber"
                               :type "text"
@@ -633,21 +659,16 @@
        [:div.col-sm-2 "Khata khatuni Number"
         [:input.form-control {:id "skhatakhatuninumber"
                               :type "text"
-                              :placeholder "Khata Khatuni Number"}]]
-       [:div.col-sm-2 "Name of the First Party"
-        [:input.form-control {:id "snameofthefirstparty"
-                              :type "text"
-                              :placeholder "Name of the First Party"}]]
-       [:div.col-sm-2 "Name of the Second Party"
-        [:input.form-control {:id "snameofthesecondparty"
-                              :type "text"
-                              :placeholder "Name of the Second Party"}]]]]
+                              :placeholder "Khata Khatuni Number"}]]]]
+     [:hr]
      [:div.form-group
       [:div.row
-       [:div.col-sm-2.col-md-offset-5 {:style {:padding-top "20px"}}
-        [:input.btn.btn-primary {:type "button" :value "Search" :on-click search}]
-        [:input.btn.btn-primary {:type "button" :value "Add" :on-click add}]
-        [:input.btn.btn-primary {:id "getall" :type "button" :value "Refresh":on-click get-all-click}]]]]]
+       [:div.col-sm-8.col-md-offset-5 
+        [button-tool-bar
+         [button {:bs-style "info" :on-click search } "Search"]
+         [button {:bs-style "primary"  :on-click add} "Add New"]
+         [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]
+        ]]]]
 
     [:div {:class "box-body"}
      [:table {:class "table table-bordered table-striped dataTable"}
