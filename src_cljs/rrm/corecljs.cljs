@@ -34,7 +34,7 @@
                           :is-searched-results false
                           :user nil}))
 
-(def serverhost "http://192.168.0.114:9000/")
+(def serverhost "http://localhost:9000/")
 
 (defn set-key-value [k v]
   (reset! storage (assoc @storage k v)))
@@ -494,51 +494,64 @@
 
 (defn mutation-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
-                             :mutationnumber (.-mutationnumber dmt)
+                             :mutationnumber (.-mutationnumber (.-numbers dmt))
                              :nameofthefirstparty (.-nameofthefirstparty dmt)
                              :nameofthesecondparty (.-nameofthesecondparty dmt)
                              :dateofinstitution (.-dateofinstitution dmt)
                              :nameofpo (.-nameofpo dmt)
                              :dateofdecision (.-dateofdecision dmt)
                              :title (.-title dmt)
-                             :khasranumber (.-khasranumber dmt)
-                             :khatakhatuninumber (.-khasranumber dmt)
+                             :khasranumber (.-khasranumber (.-numbers dmt))
+                             :khatakhatuninumber (.-khasranumber (.-numbers dmt))
                              :area (.-area dmt)
-                             :o2number (.-o2number dmt)
-                             :o4number (.-o4number dmt)
-                             :o6number (.-o6number dmt)
-                             :racknumber (.-racknumber dmt)
+                             :o2number (.-o2number (.-numbers dmt))
+                             :o4number (.-o4number (.-numbers dmt))
+                             :o6number (.-o6number (.-numbers dmt))
+                             :racknumber (.-racknumber (.-numbers dmt))
                              :receiveddate (.-receiveddate dmt)
                              :remarks (.-remarks dmt)
-                             :villageid (.-villageid dmt)
-                             :subdivisionid (.-subdivisionid dmt)
-                             :districtid (.-districtid dmt)
+                             :villageid (.-id (.-village dmt))
+                             :subdivisionid (.-id (.-subdivision dmt))
+                             :districtid (.-id (.-district dmt))
                              :isactive true})
         focus (r/atom nil)]
     (fn [] [mutation-template
-            "Mutation Update Form"
-            update-data
-            focus
-            #(update-form-onclick update-data focus) sub-division-id])))
+           "Mutation Update Form"
+           update-data
+           focus
+           #(update-form-onclick update-data focus) sub-division-id])))
 
+(defn map-mutation-data [mut]
+  {:id (if (nil? (mut :id))0 (int (mut :id))) :nameofthefirstparty (mut :nameofthefirstparty)
+   :nameofthesecondparty (:nameofthesecondparty mut) :dateofinstitution (mut :dateofinstitution) :nameofpo (mut :nameofpo)
+   :dateofdecision (:dateofdecision mut) :title (:title mut) :area (:area mut)
+   :numbers {:mutationnumber (mut :mutationnumber) :khasranumber (mut :khasranumber) :racknumber (mut :racknumber)
+             :o4number (mut :o4number) :o2number (mut :o2number) :khatakhatuninumber (mut :khatakhatuninumber)
+             :o6number (mut :o6number)}
+   :village {:id (str (mut :villageid))  :name ""}
+   :subdivision {:id (mut :subdivisionid) :name ""}
+   :district {:id (mut :districtid) :name ""}
+   :remarks (mut :remarks)})
 
 (defn add-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
     (let [onres (fn[json]
                   (secretary/dispatch! "/"))
-          data (swap! data-set dissoc :districtid :subdivisionid)]
+                                        ; data (swap! data-set dissoc :districtid :subdivisionid)
+          ]
       (http-post (str serverhost "mutations")
-                     onres  (.serialize (Serializer.) (clj->js data))))
+                 onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
     (reset! focus "on")))
 
 (defn update-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
-     (let [onres (fn[data]
-                   (secretary/dispatch! "/"))
-           data (swap! data-set dissoc :districtid :subdivisionid)]
-          (http-put (str serverhost "mutations/" (:id @data-set))
-                    onres (.serialize (Serializer.) (clj->js data)))))
-    (reset! focus "on"))
+    (let [onres (fn[data]
+                  (secretary/dispatch! "/"))
+         ; data (swap! data-set dissoc :districtid :subdivisionid)
+          ]
+      (http-put (str serverhost "mutations/" (:id @data-set))
+                onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set))))))
+  (reset! focus "on"))
 
 (defn form-cancel [event]
   (secretary/dispatch! "/"))
@@ -680,7 +693,7 @@
         [:th "Name of The SecondParty"]
         [:th "Date of Institution"]
         [:th "Name of P.O"]
-        ;;  [:th "Name of Districts"]
+        [:th "Name of District"]
         [:th "Name of Village"]
         [:th "SubDivisionName"]
         [:th " "]
@@ -689,14 +702,14 @@
       [:tbody
        (for [mt mutations]
          ^{:key (.-id mt)} [:tr
-                            [:td (.-mutationnumber mt)]
+                            [:td (.-mutationnumber (.-numbers mt))]
                             [:td (.-nameofthefirstparty mt)]
                             [:td (.-nameofthesecondparty mt)]
                             [:td (.-dateofinstitution mt)]
                             [:td (.-nameofpo mt)]
-                            ;; [:td (.-districtname mt)]
-                            [:td (.-villagename mt)]
-                            [:td (.-subdivisionname mt)]
+                            [:td (.-name (.-district  mt))]
+                            [:td (.-name (.-village mt))]
+                            [:td (.-name (.-subdivision mt))]
                             [:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
                             [:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]])]]
      [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
@@ -2765,6 +2778,7 @@
                 (let [dt (getdata json)]
                   (set-key-value :mutations (.-data dt))
                   (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                  (js/console.log (.-mutationnumber (.-numbers (first (get-value! :mutations)))))
                   (set-key-value :page-location  [render-mutations (get-value! :mutations)])))
         dist-res (fn[json] (set-key-value :districts (getdata json)))]
     (do
