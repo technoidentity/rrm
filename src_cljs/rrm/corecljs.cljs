@@ -31,6 +31,7 @@
                           :o2mutations {}
                           :o4mutations {}
                           :o6mutations {}
+                          :token ""
                           :is-searched-results false
                           :user nil}))
 
@@ -41,6 +42,9 @@
 
 (defn http-get [url callback]
   (xhr/send url callback))
+
+(defn http-get-auth [url callback]
+  (xhr/send url callback "GET" "" (clj->js {:rrm-auth (get-value! :token)})))
 
 (defn get-value! [k]
   (k @storage))
@@ -58,13 +62,13 @@
   (.getStatus (.-target res)))
 
 (defn http-post [url callback data]
-  (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
+  (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json" :rrm-auth (get-value! :token)}))))
 
 (defn http-put [url callback data]
-  (xhr/send url callback "PUT" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
+  (xhr/send url callback "PUT" data  (structs/Map. (clj->js {:Content-Type "application/json" :rrm-auth (get-value! :token)}))))
 
 (defn http-delete [url callback]
-  (xhr/send url callback "DELETE"  (structs/Map. (clj->js {:Content-Type "application/json"}))))
+  (xhr/send url callback "DELETE" "" (structs/Map. (clj->js {:Content-Type "application/json" :rrm-auth (get-value! :token)}))))
 
 
 ;; =====================================================================================================
@@ -73,8 +77,8 @@
 
 (defn login-validator [data-set]
   (first (b/validate data-set
-                     :email [[v/required :message "Filed is required"]
-                             [v/email :message "Enter valid email-id"]]
+                     :username [[v/required :message "Filed is required"]
+                         [v/email :message "Enter valid email-id"]]
                      :password [[v/required :message "Filed is required"]
                                 [v/string  :message "Enter valid password"]])))
 
@@ -109,9 +113,10 @@
   (if (= nil (login-validator @data-set))
     (let [onresp (fn [json]
                    (if (= (get-status json) 200)
-                     ((set-key-value :user (getdata json))
-                      (secretary/dispatch! "/documents"))))]
-      (http-post (str serverhost "user/authenticate")
+                     ((set-key-value :user (.-_2 (getdata json)))
+                      (set-key-value :token (.-_1 (getdata json)))
+                      (secretary/dispatch! "/"))))]
+      (http-post (str serverhost "login")
                  onresp (.serialize (Serializer.) (clj->js @data-set ))))
     (reset! focus "on")))
 
@@ -129,7 +134,7 @@
         [:div.panel-heading
          [:h2 "Log-in"]]
         [:div.panel-body
-         [login-input-element :email "Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "Email" focus]
+         [login-input-element :username "Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "Email" focus]
          [login-input-element :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "password" focus]
          [submit-button my-data focus ]]]])))
 
@@ -141,8 +146,9 @@
   (not (nil? (get-value! :user))))
 
 (defn set-page! [currnt-page]
-  (set-key-value :page-location
-                 currnt-page))
+  (if (nil? (get-value! :user)) (set-key-value :page-location [login])
+      (set-key-value :page-location
+                     currnt-page)))
 
 (defn get-total-rec-no [nos]
   (let [totrec (quot nos 10)]
@@ -229,13 +235,12 @@
                 (let [dt (getdata json)]
                   (set-key-value :mutations (.-data dt))
                   (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location
-                                 [render-mutations (get-value! :mutations)])))]
-    (http-get (get-index-url (get-value! :is-searched-results)
-                             (dec (get-value! :current-page))
-                             vid mn fp sp po
-                             kknum so2 st knum)
-              onres)))
+                  (set-page! [render-mutations (get-value! :mutations)])))]
+    (http-get-auth (get-index-url (get-value! :is-searched-results)
+                                  (dec (get-value! :current-page))
+                                  vid mn fp sp po
+                                  kknum so2 st knum)
+                   onres)))
 
 (defn pager [value total-rec]
   [pager-elem {:bsSize "large"
@@ -313,13 +318,13 @@
                           (set-key-value :mutations (.-data data))
                           (set-key-value :total-pages
                                          (get-total-rec-no (.-pagesCount data)))
-                          (set-key-value :page-location
-                                         [render-mutations (get-value! :mutations)])))]
+                          (set-page! :page-location
+                                     [render-mutations (get-value! :mutations)])))]
     (set-key-value :current-page 1)
     (set-key-value :is-searched-results true)
-    (http-get (str (get-search-url
-                    vid mn fp sp po
-                    kknum so2 st knum)"&pageIndex=0&pageSize=10") onres)))
+    (http-get-auth (str (get-search-url
+                         vid mn fp sp po
+                         kknum so2 st knum)"&pageIndex=0&pageSize=10") onres)))
 
 
 (defn input [label type id]
@@ -396,9 +401,8 @@
               (let [dt (getdata json)]
                 (set-key-value :subdivisions dt)
                 (set-key-value :villages nil)))]
-    (do (http-get (str  serverhost "districts/" val  "/subdivisions") res)
-        (swap! data-set assoc id val)
-        )))
+    (do (http-get-auth (str  serverhost "districts/" val  "/subdivisions") res)
+        (swap! data-set assoc id val))))
 
 (defn dist-sel-tag [id data data-set]
   [:select.form-control {:id id
@@ -419,9 +423,8 @@
   (let [res (fn [json]
               (let [dt (getdata json)]
                 (set-key-value :villages dt)))]
-    (do (http-get (str serverhost "subdivisions/" val  "/villages") res)
-        (swap! data-set assoc id val)
-        )))
+    (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
+        (swap! data-set assoc id val))))
 
 (defn sub-sel-tag [id data data-set]
   [:select.form-control {:id id
@@ -542,9 +545,7 @@
 (defn add-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
     (let [onres (fn[json]
-                  (secretary/dispatch! "/"))
-                                        ; data (swap! data-set dissoc :districtid :subdivisionid)
-          ]
+                  (secretary/dispatch! "/"))]
       (http-post (str serverhost "mutations")
                  onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
     (reset! focus "on")))
@@ -552,9 +553,7 @@
 (defn update-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
     (let [onres (fn[data]
-                  (secretary/dispatch! "/"))
-         ; data (swap! data-set dissoc :districtid :subdivisionid)
-          ]
+                  (secretary/dispatch! "/"))]
       (http-put (str serverhost "mutations/" (:id @data-set))
                 onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set))))))
   (reset! focus "on"))
@@ -580,10 +579,9 @@
                   (set-key-value :total-pages (get-total-rec-no
                                                (.-pagesCount mt)))
                   (set-key-value :current-page 1)
-                  (set-key-value :page-location
-                                 [render-mutations (get-value! :mutations)])))]
+                  (set-page! [render-mutations (get-value! :mutations)])))]
     (set-key-value :is-searched-results false)
-    (http-get (str serverhost "mutations?pageIndex=0&pageSize=10") onres)))
+    (http-get-auth (str serverhost "mutations?pageIndex=0&pageSize=10") onres)))
 
 
 (defn src-dist-onchange [val]
@@ -591,7 +589,7 @@
               (let [dt (getdata json)]
                 (set-key-value :subdivisions dt)
                 (set-key-value :villages nil)))]
-    (http-get (str  serverhost "districts/" val  "/subdivisions") res)))
+    (http-get-auth (str  serverhost "districts/" val  "/subdivisions") res)))
 
 (defn src-dist-sel-tag []
   [:select.form-control {:id :src-dist
@@ -606,7 +604,7 @@
   (let [res (fn [json]
               (let [dt (getdata json)]
                 (set-key-value :villages dt)))]
-    (http-get (str serverhost "subdivisions/" val  "/villages") res)))
+    (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)))
 
 (defn src-sub-sel-tag []
   [:select.form-control {:id :src-sub
@@ -746,16 +744,16 @@
                 (let [dt (getdata json)]
                   (set-key-value :mutations (.-data dt))
                   (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-mutations (get-value! :mutations)])))]
-          (set-key-value :is-searched-results false)
-      (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+                  (set-page!  [render-mutations (get-value! :mutations)])))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 (defroute documents-path "/mutations/add" []
   (let [onres (fn[json](
-                        (set-key-value :districts (getdata json))
-                        (set-page! [mutation-add-template])))]
-    (http-get (str serverhost "districts") onres)))
+                       (set-key-value :districts (getdata json))
+                       (set-page! [mutation-add-template])))]
+    (http-get-auth (str serverhost "districts") onres)))
 
 (defroute documents-path1 "/mutations/update/:id" [id]
   (let [upd-data (first (filter (fn[obj] (=(.-id obj) (.parseInt js/window id))) (get-value! :mutations)))
@@ -766,7 +764,7 @@
         vill-res (fn[json](set-key-value :villages (getdata json)))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))
         dist-res (fn[json] ((set-key-value :districts (getdata json))
-                            (set-page! [mutation-update-template id upd-data])))]
+                           (set-page! [mutation-update-template id upd-data])))]
     (do
       ;; (http-get (str serverhost "villages/" (.-villageid upd-data))
       ;;           (fn [json]
@@ -780,12 +778,11 @@
       ;; (js/console.log upd-data)
       ;; (js/console.log sub-id)
       ;; (js/console.log )
-      (http-get (str serverhost "districts") dist-res)
+      (http-get-auth (str serverhost "districts") dist-res)
       ;; (http-get (str serverhost "districts" (.-districtid dist-id) "subdivisions") sub-res)
       ;; (http-get (str serverhost "subdivisions" (.-subdivionid sub-id) "villages") vill-res)
-      (http-get (str serverhost "villages") vill-res)
-      (http-get (str serverhost "subdivisions") sub-res)
-      )))
+      (http-get-auth (str serverhost "villages") vill-res)
+      (http-get-auth (str serverhost "subdivisions") sub-res))))
 
 
 
@@ -885,7 +882,7 @@
                    (set-key-value :villages dt)))]
     (set-key-value :villages [])
     (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval) onresp))))
+      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
 
 
 (defn revenue-tags-template [data-set]
@@ -941,28 +938,29 @@
 
 
 (defroute revenue-list "/revenue" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :revenues (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-revenue (get-value! :revenues)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "revenuerecords?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :revenues (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-revenue (get-value! :revenues)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "revenuerecords?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute revenue-add-path "/revenue/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [revenue-add-template])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [revenue-add-template])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defroute revenue-upd-path "/revenue/update/:id" [id]
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [revenue-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :revenues)))])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [revenue-update-template id
+                                   (first (filter (fn[obj]
+                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :revenues)))])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defn revenue-add [event]
   (secretary/dispatch! "/revenue/add"))
@@ -1103,7 +1101,7 @@
                    (set-key-value :villages dt)))]
     (set-key-value :villages [])
     (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval) onresp))))
+      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
 
 
 (defn khasragirdwani-tags-template [data-set]
@@ -1159,29 +1157,30 @@
 
 
 (defroute khasragirdwani-list "/khasragirdwani" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :khasragirdwanis (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-khasragirdwani (get-value! :khasragirdwanis)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "khasragirdwanis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :khasragirdwanis (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-khasragirdwani (get-value! :khasragirdwanis)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "khasragirdwanis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute khasragirdwani-add-path "/khasragirdwani/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [khasragirdwani-add-template])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [khasragirdwani-add-template])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defroute khasragirdwani-upd-path "/khasragirdwani/update/:id" [id]
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [khasragirdwani-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id)))
-                                                   (get-value! :khasragirdwanis)))])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [khasragirdwani-update-template id
+                                   (first (filter (fn[obj]
+                                                    (=(.-id obj) (.parseInt js/window id)))
+                                                  (get-value! :khasragirdwanis)))])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defn khasragirdwani-add [event]
   (secretary/dispatch! "/khasragirdwani/add"))
@@ -1318,7 +1317,7 @@
                    (set-key-value :villages dt)))]
     (set-key-value :villages [])
     (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval) onresp))))
+      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
 
 
 (defn masavi-tags-template [data-set]
@@ -1373,28 +1372,29 @@
 
 
 (defroute masavi-list "/masavi" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :masavis (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-masavi (get-value! :masavis)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "masavis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :masavis (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-masavi (get-value! :masavis)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "masavis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute masavi-add-path "/masavi/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [masavi-add-template])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [masavi-add-template])))]
+    (hthttp-get-auth (str serverhost "villages") onres)))
 
 (defroute masavi-upd-path "/masavi/update/:id" [id]
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [masavi-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :masavis)))])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [masavi-update-template id
+                                   (first (filter (fn[obj]
+                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :masavis)))])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defn masavi-add [event]
   (secretary/dispatch! "/masavi/add"))
@@ -1532,7 +1532,7 @@
                    (set-key-value :villages dt)))]
     (set-key-value :villages [])
     (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval) onresp))))
+      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
 
 
 (defn consolidation-tags-template [data-set]
@@ -1587,28 +1587,29 @@
 
 
 (defroute consolidation-list "/consolidation" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :consolidations (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-consolidation (get-value! :consolidations)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "consolidations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :consolidations (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-consolidation (get-value! :consolidations)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "consolidations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute consolidation-add-path "/consolidation/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [consolidation-add-template])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [consolidation-add-template])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defroute consolidation-upd-path "/consolidation/update/:id" [id]
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [consolidation-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :consolidations)))])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [consolidation-update-template id
+                                   (first (filter (fn[obj]
+                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :consolidations)))])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defn consolidation-add [event]
   (secretary/dispatch! "/consolidation/add"))
@@ -1745,7 +1746,7 @@
                    (set-key-value :villages dt)))]
     (set-key-value :villages [])
     (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval) onresp))))
+      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
 
 
 (defn fieldbook-tags-template [data-set]
@@ -1800,28 +1801,29 @@
 
 
 (defroute fieldbook-list "/fieldbook" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :fieldbooks (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-fieldbook (get-value! :fieldbooks)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "fieldbooks?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :fieldbooks (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-fieldbook (get-value! :fieldbooks)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "fieldbooks?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute fieldbook-add-path "/fieldbook/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [fieldbook-add-template])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [fieldbook-add-template])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defroute fieldbook-upd-path "/fieldbook/update/:id" [id]
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [fieldbook-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :fieldbooks)))])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [fieldbook-update-template id
+                                   (first (filter (fn[obj]
+                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :fieldbooks)))])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defn fieldbook-add [event]
   (secretary/dispatch! "/fieldbook/add"))
@@ -1985,28 +1987,29 @@
 
 
 (defroute misc-list "/misc" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :miscs (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-misc (get-value! :miscs)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "miscs?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :miscs (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-misc (get-value! :miscs)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "miscs?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute misc-add-path "/misc/add" []
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [misc-add-template])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [misc-add-template])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defroute misc-upd-path "/misc/update/:id" [id]
   (let [onres (fn[json](
-                        (set-key-value :villages (getdata json))
-                        (set-page! [misc-update-template id
-                                    (first (filter (fn[obj]
-                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :miscs)))])))]
-    (http-get (str serverhost "villages") onres)))
+                       (set-key-value :villages (getdata json))
+                       (set-page! [misc-update-template id
+                                   (first (filter (fn[obj]
+                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :miscs)))])))]
+    (http-get-auth (str serverhost "villages") onres)))
 
 
 
@@ -2123,15 +2126,15 @@
         onres (fn [json] (let [d (first (getdata json))]
                           (set-o2-fields data-set d)))]
     (if (= selval "select") (reset-o2-fields data-set)
-        (http-get (str serverhost "o2registers/"selval"/mutations")
-                  onres))))
+        (http-get-auth (str serverhost "o2registers/"selval"/mutations")
+                   onres))))
 
 (defn o2-select
   [data-set]
   [:div.form-group
    [:label.col-sm-3.control-label "O2 Number"]
    [:div.col-sm-6
-    [:select.form-control {:id "O2-select" :value (:o2number @data-set) :on-change #(on-o2-change data-set)}
+    [:select.form-control {:id "O2-select" :value "abcd" :on-change #(on-o2-change data-set)}
      (for [d (get-value! :o2mutations)]
        ^{:key d} [:option {:value d} d])]]])
 
@@ -2187,7 +2190,7 @@
                    (set-key-value :villages dt)))]
     (set-key-value :villages [])
     (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval) onresp))))
+      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
 
 
 (defn o2register-tags-template [id data-set]
@@ -2246,13 +2249,14 @@
 
 
 (defroute o2register-list "/o2register" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :o2registers (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-o2register (get-value! :o2registers)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "o2registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :o2registers (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page! [render-o2register (get-value! :o2registers)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "o2registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute o2register-add-path "/o2register/add" []
@@ -2261,8 +2265,8 @@
                        (set-page! [o2register-add-template])))
         ono2resp (fn [json] (set-key-value :o2mutations
                                           (clj->js (cons "select" (js->clj (getdata json))))))]
-    (http-get (str serverhost "mutations/o2numbers/search") ono2resp)
-    (http-get (str serverhost "villages") onres)))
+    (http-get-auth (str serverhost "mutations/o2numbers/search") ono2resp)
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defroute o2register-upd-path "/o2register/update/:id" [id]
   (let [onres (fn[json](
@@ -2272,8 +2276,8 @@
                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :o2registers)))])))
         ono2resp (fn [json] (set-key-value :o2mutations
                                           (clj->js (cons "select" (js->clj (getdata json))))))]
-    (http-get (str serverhost "mutations/o2numbers/search") ono2resp)
-    (http-get (str serverhost "villages") onres)))
+    (http-get-auth (str serverhost "mutations/o2numbers/search") ono2resp)
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defn o2register-add [event]
   (secretary/dispatch! "/o2register/add"))
@@ -2434,8 +2438,8 @@
         onres (fn [json] (let [d (aget (getdata json) 0)]
                           (set-o4-fields data-set d)))]
     (if (= selval "select") (reset-o4-fields data-set)
-        (http-get (str serverhost "o4registers/"selval"/mutations")
-                  onres))))
+        (http-get-auth (str serverhost "o4registers/"selval"/mutations")
+                   onres))))
 
 
 (defn o4-select
@@ -2479,13 +2483,14 @@
 
 
 (defroute o4register-list "/o4register" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :o4registers (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-o4register (get-value! :o4registers)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "o4registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :o4registers (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-o4register (get-value! :o4registers)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "o4registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute o4register-add-path "/o4register/add" []
@@ -2494,13 +2499,13 @@
                        (set-page! [o4register-add-template])))
         ono4resp (fn [json] (set-key-value :o4mutations
                                           (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json))))))]
-    (http-get (str serverhost "mutations/o4numbers/search") ono4resp)
-    (http-get (str serverhost "villages") onres)))
+    (http-get-auth (str serverhost "mutations/o4numbers/search") ono4resp)
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defroute o4register-upd-path "/o4register/update/:id" [id]
   (let [ono4resp (fn [json] (set-key-value :o4mutations
                                           (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json))))))]
-    (http-get (str serverhost "mutations/o4numbers/search") ono4resp)
+    (http-get-auth (str serverhost "mutations/o4numbers/search") ono4resp)
     (set-page! [o4register-update-template id
                 (first (filter (fn[obj]
                                  (=(.-id obj) (.parseInt js/window id))) (get-value! :o4registers)))])))
@@ -2576,8 +2581,8 @@
         onres (fn [json] (let [d (first (getdata json))]
                           (set-o6-fields data-set d)))]
     (if (= selval "select") (reset-o6-fields data-set)
-        (http-get (str serverhost "o6registers/"selval"/mutations")
-                  onres))))
+        (http-get-auth (str serverhost "o6registers/"selval"/mutations")
+                       onres))))
 
 
 (defn o6-select
@@ -2646,6 +2651,7 @@
 (defn o6register-update-form-onclick [data-set focus]
   (if (= nil (o6register-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :o6number (.-value (.getElementById js/document "O6-select"))))
+        (js/console.log (clj->js @data-set))
         (let [onres (fn[data] (secretary/dispatch! "/o6register"))]
           (http-put (str serverhost "o6registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
@@ -2661,7 +2667,7 @@
                    (set-key-value :villages dt)))]
     (set-key-value :villages [])
     (when-not ( >  1 (.-length eval))
-      (http-get (str serverhost "villages/search?name=" eval) onresp))))
+      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
 
 
 (defn o6register-tags-template [data-set]
@@ -2688,6 +2694,7 @@
 
 (defn o6register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
+                             :mutationid (.-mutationid dmt)
                              :o6number (.-o6number dmt)
                              :subdivisionname (.-subdivisionname dmt)
                              :year (.-year dmt)
@@ -2713,13 +2720,14 @@
 
 
 (defroute o6register-list "/o6register" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :o6registers (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-key-value :page-location  [render-o6register (get-value! :o6registers)])))]
-    (set-key-value :is-searched-results false)
-    (http-get (str serverhost "o6registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :o6registers (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-o6register (get-value! :o6registers)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "o6registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 (defroute o6register-add-path "/o6register/add" []
@@ -2728,8 +2736,8 @@
                        (set-page! [o6register-add-template])))
         ono6resp (fn [json] (set-key-value :o6mutations
                                           (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json))))))]
-    (http-get (str serverhost "mutations/o6numbers/search") ono6resp)
-    (http-get (str serverhost "villages") onres)))
+    (http-get-auth (str serverhost "mutations/o6numbers/search") ono6resp)
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defroute o6register-upd-path "/o6register/update/:id" [id]
   (let [onres (fn[json](
@@ -2739,8 +2747,8 @@
                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :o6registers)))])))
         ono6resp (fn [json] (set-key-value :o6mutations
                                           (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json))))))]
-    (http-get (str serverhost "mutations/o6numbers/search") ono6resp)
-    (http-get (str serverhost "villages") onres)))
+    (http-get-auth (str serverhost "mutations/o6numbers/search") ono6resp)
+    (http-get-auth (str serverhost "villages") onres)))
 
 (defn o6register-add [event]
   (secretary/dispatch! "/o6register/add"))
@@ -2800,17 +2808,17 @@
 
 
 (defroute home-path "/" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :mutations (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (js/console.log (.-mutationnumber (.-numbers (first (get-value! :mutations)))))
-                  (set-key-value :page-location  [render-mutations (get-value! :mutations)])))
-        dist-res (fn[json] (set-key-value :districts (getdata json)))]
-    (do
-      (set-key-value :is-searched-results false)
-      (http-get (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)
-      (http-get (str serverhost "districts") dist-res))))
+  (if (nil? (get-value! :user)) (set-key-value :page-location [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :mutations (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page! [render-mutations (get-value! :mutations)])))
+            dist-res (fn[json] (set-key-value :districts (getdata json)))]
+        (do
+          (set-key-value :is-searched-results false)
+          (http-get-auth (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)
+          (http-get-auth (str serverhost "districts") dist-res)))))
 
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
