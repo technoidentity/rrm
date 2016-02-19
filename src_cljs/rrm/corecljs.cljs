@@ -181,15 +181,17 @@
 
 (defn get-search-url [vid mutno fp
                       sp nop kkn
-                      o2n tit kn]
+                      o2n tit kn
+                      o4n o6n]
   (let [purl (str serverhost "mutations/search?")]
 
     (cond (not (st/blank? mutno)) (str purl "mutationNo="mutno)
-          :else (str purl "villageId="(int vid)"&firstparty="fp"&secondparty="sp"&nameofpo="nop"&khatakhatuninumber="kkn"&o2number="o2n"&title="tit"&khasranumber="kn))))
+          :else (str purl "villageId="(int vid)"&firstparty="fp"&secondparty="sp"&nameofpo="nop"&khatakhatuninumber="kkn"&o2number="o2n"&title="tit"&khasranumber="kn"&o4number="o4n"&o6number="o6n))))
 
 (defn get-index-url [is-searched-results sel-page vid
-                     mutno fp sp nop kkn o2n tit kn]
-  (cond (= true is-searched-results)(str (get-search-url vid mutno fp sp nop kkn o2n tit kn)"&pageIndex="sel-page"&pageSize=10")
+                     mutno fp sp nop kkn o2n tit kn
+                     o4n o6n]
+  (cond (= true is-searched-results)(str (get-search-url vid mutno fp sp nop kkn o2n tit kn o4n o6n)"&pageIndex="sel-page"&pageSize=10")
         :else (str serverhost "mutations?pageIndex="sel-page "&pageSize=10")))
 
 (defn get-new-page-data [data current-page total-pages]
@@ -227,6 +229,8 @@
         vid  (.-value (.getElementById js/document "src-vill"))
         po   (.-value (.getElementById js/document "svillagename"))
         so2  (.-value (.getElementById js/document "so2number"))
+        so4  (.-value (.getElementById js/document "so4number"))
+        so6  (.-value (.getElementById js/document "so6number"))
         knum (.-value (.getElementById js/document "skhasranumber"))
         kknum (.-value (.getElementById js/document "skhatakhatuninumber"))
         fp (.-value (.getElementById js/document "snameofthefirstparty"))
@@ -239,7 +243,8 @@
     (http-get-auth (get-index-url (get-value! :is-searched-results)
                                   (dec (get-value! :current-page))
                                   vid mn fp sp po
-                                  kknum so2 st knum)
+                                  kknum so2 st knum
+                                  so4 so6)
                    onres)))
 
 (defn pager [value total-rec]
@@ -310,6 +315,8 @@
         vid  (.-value (.getElementById js/document "src-vill"))
         po   (.-value (.getElementById js/document "svillagename"))
         so2  (.-value (.getElementById js/document "so2number"))
+        so4  (.-value (.getElementById js/document "so4number"))
+        so6  (.-value (.getElementById js/document "so6number"))
         knum (.-value (.getElementById js/document "skhasranumber"))
         kknum (.-value (.getElementById js/document "skhatakhatuninumber"))
         fp (.-value (.getElementById js/document "snameofthefirstparty"))
@@ -318,13 +325,12 @@
                           (set-key-value :mutations (.-data data))
                           (set-key-value :total-pages
                                          (get-total-rec-no (.-pagesCount data)))
-                          (set-page! :page-location
-                                     [render-mutations (get-value! :mutations)])))]
+                          (set-page! [render-mutations (get-value! :mutations)])))]
     (set-key-value :current-page 1)
     (set-key-value :is-searched-results true)
     (http-get-auth (str (get-search-url
                          vid mn fp sp po
-                         kknum so2 st knum)"&pageIndex=0&pageSize=10") onres)))
+                         kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))
 
 
 (defn input [label type id]
@@ -735,7 +741,7 @@
                             [:td (.-o6number (.-numbers mt))]
                             [:td (.-senddate mt)]
                             [:td (.-receiveddate mt)]
-                         ])]]
+                            ])]]
      [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
 
 
