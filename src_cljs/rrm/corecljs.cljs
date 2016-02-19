@@ -480,11 +480,14 @@
        [form-input-element :o4number "O4 Number" "text" data-set focus]
        [form-input-element :o6number "O6 Number" "text" data-set focus]
        [form-input-element :racknumber "Rack Number" "text" data-set focus]
+       [form-input-element :senddate "Send Date" "date" data-set focus]
        [form-input-element :receiveddate "Received Date" "date" data-set focus]
        [form-input-element :remarks "Remarks" "text" data-set focus]]
       [:div.box-footer
        [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
-       [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]])
+       [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]
+       ;;[:span (str @data-set)]
+       ]]]]])
 
 (defn mutation-add-template []
   (let [add-data (r/atom {:isactive true})
@@ -508,6 +511,7 @@
                              :o4number (.-o4number (.-numbers dmt))
                              :o6number (.-o6number (.-numbers dmt))
                              :racknumber (.-racknumber (.-numbers dmt))
+                             :senddate (.-senddate dmt)
                              :receiveddate (.-receiveddate dmt)
                              :remarks (.-remarks dmt)
                              :villageid (.-id (.-village dmt))
@@ -531,6 +535,8 @@
    :village {:id (str (mut :villageid))  :name ""}
    :subdivision {:id (mut :subdivisionid) :name ""}
    :district {:id (mut :districtid) :name ""}
+   :senddate (mut :senddate)
+   :receiveddate (mut :receiveddate)
    :remarks (mut :remarks)})
 
 (defn add-form-onclick [data-set focus]
@@ -647,13 +653,22 @@
         [:input.form-control {:id "so2number"
                               :type "text"
                               :placeholder "O2 Number"}]]
-       [:div.col-sm-2 "Name of the First Party"
-        [:input.form-control {:id "snameofthefirstparty"
+       [:div.col-sm-2 "O4 Number"
+        [:input.form-control {:id "so4number"
                               :type "text"
-                              :placeholder "Name of the First Party"}]]]]
+                              :placeholder "O4 Number"}]]
+       [:div.col-sm-2 "O6 Number"
+        [:input.form-control {:id "so6number"
+                              :type "text"
+                              :placeholder "O6 Number"}]]
+       ]]
 
      [:div.form-group
       [:div.row
+       [:div.col-sm-2 "Name of the First Party"
+        [:input.form-control {:id "snameofthefirstparty"
+                              :type "text"
+                              :placeholder "Name of the First Party"}]]
        [:div.col-sm-2 "Name of the Second Party"
         [:input.form-control {:id "snameofthesecondparty"
                               :type "text"
@@ -679,7 +694,7 @@
       [:div.row
        [:div.col-sm-8.col-md-offset-5 
         [button-tool-bar
-         [button {:bs-style "info" :on-click search } "Search"]
+         [button {:bs-style "primary" :on-click search } "Search"]
          [button {:bs-style "primary"  :on-click add} "Add New"]
          [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]
         ]]]]
@@ -688,6 +703,8 @@
      [:table {:class "table table-bordered table-striped dataTable"}
       [:thead
        [:tr
+        [:th " "]
+        [:th " "]
         [:th "Mutation Number"]
         [:th "Name of the FirstParty"]
         [:th "Name of The SecondParty"]
@@ -696,12 +713,17 @@
         [:th "Name of District"]
         [:th "Name of Village"]
         [:th "SubDivisionName"]
-        [:th " "]
-        [:th " "]
+        [:th "O2 Number"]
+        [:th "O4 Number"]
+        [:th "O6 Number"]
+        [:th "Sent Date"]
+        [:th "Received Date "]
         ]]
       [:tbody
        (for [mt mutations]
          ^{:key (.-id mt)} [:tr
+                            [:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
+                            [:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
                             [:td (.-mutationnumber (.-numbers mt))]
                             [:td (.-nameofthefirstparty mt)]
                             [:td (.-nameofthesecondparty mt)]
@@ -710,8 +732,12 @@
                             [:td (.-name (.-district  mt))]
                             [:td (.-name (.-village mt))]
                             [:td (.-name (.-subdivision mt))]
-                            [:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                            [:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]])]]
+                            [:td (.-o2number (.-numbers  mt))]
+                            [:td (.-o4number (.-numbers mt))]
+                            [:td (.-o6number (.-numbers mt))]
+                            [:td (.-senddate mt)]
+                            [:td (.-receiveddate mt)]
+                         ])]]
      [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
 
 
