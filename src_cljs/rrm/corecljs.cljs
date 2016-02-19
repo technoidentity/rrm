@@ -2069,13 +2069,33 @@
                      :startingyear [[v/required :message "Field is required Must be number"]]
                      :endingyear [[v/required :message "Field is required Must be number"]])))
 
+(defn o2-input-element [id ttype data-set placeholder in-focus bool]
+  [:input.form-control {:id id
+                        :type ttype
+                        :value (@data-set id)
+                        :placeholder placeholder
+                        :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                        :on-blur  #(reset! in-focus "on")
+                        :disabled bool
+                        }])
 
-(defn o2register-input-int-row [id label ttype data-set focus]
+(defn o2-input-int [id ttype data-set placeholder in-focus bool]
+  [:input.form-control {:id id
+                        :type ttype
+                        :value (@data-set id)
+                        :placeholder placeholder
+                        :on-change #(swap! data-set assoc id (int (-> % .-target .-value )))
+                        :on-blur  #(reset! in-focus "on")
+                        :disabled bool
+                        }])
+
+
+(defn o2register-input-int-row [id label ttype data-set focus bool]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [input-int id ttype data-set label input-focus]]
+       [:div.col-sm-6 [o2-input-int id ttype data-set label input-focus bool]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (o2register-form-validator @data-set))
                           [:div]
@@ -2083,18 +2103,31 @@
                            [:b (str (first ((o2register-form-validator @data-set) id)))]])
                         [:div])]])))
 
-(defn o2register-input-row [id label ttype data-set focus]
+(defn o2register-input-row [id label ttype data-set focus bool]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [input-element id ttype data-set label input-focus]]
+       [:div.col-sm-6 [o2-input-element id ttype data-set label input-focus bool]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (o2register-form-validator @data-set))
                           [:div]
                           [:div {:style  {:color "red"}}
                            [:b (str (first ((o2register-form-validator @data-set) id)))]])
                         [:div])]])))
+
+(defn o2register-tags-template [id data-set bool]
+  [:select.form-control {:id id :value (id @data-set) :disabled bool }
+   (doall (for [d (get-value! :villages)]
+            ^{:key (.-id d)} [:option {:value (.-villagename d)} (.-villagename d)]))])
+
+(defn o2register-input-select [id label data-set focus bool]
+  (let [input-focus (r/atom nil)]
+    (fn []
+      [:div.form-group
+       [:label.col-sm-3.control-label label]
+       [:div#tagdiv.col-sm-6 [o2register-tags-template id  data-set bool]]
+       [:div.col-sm-3 [:div]]])))
 
 
 
@@ -2127,16 +2160,19 @@
                   onres))))
 
 (defn o2-select
-  [data-set]
+  [data-set bool]
   [:div.form-group
    [:label.col-sm-3.control-label "O2 Number"]
    [:div.col-sm-6
-    [:select.form-control {:id "O2-select" :value (:o2number @data-set) :on-change #(on-o2-change data-set)}
+    [:select.form-control {:id "O2-select"
+                           :value (:o2number @data-set)
+                           :on-change #(on-o2-change data-set)
+                           :disabled bool}
      (for [d (get-value! :o2mutations)]
        ^{:key d} [:option {:value d} d])]]])
 
 
-(defn o2register-template [doc-name data-set focus save-function]
+(defn o2register-template [doc-name data-set focus save-function bool]
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
@@ -2144,18 +2180,18 @@
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
-       [o2-select data-set]
-       [o2register-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [o2register-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
-       [o2register-input-row :dateofinstitution "Date Of Institution" "date" data-set focus]
-       [o2register-input-row :sourceofreceipt "Source Of Receipt" "text" data-set focus]
-       [o2register-input-select :villagename "Village Name" data-set focus ]
-       [o2register-input-row :nameofthefirstparty "Name Of The First Party" "text" data-set focus]
-       [o2register-input-row :dateofreceiptfrompanchayat "Date Of Receipt From Panchayat" "date" data-set focus]
-       [o2register-input-row :dateandgistoffinalorder "Date and gist of Final Order" "date" data-set focus]
-       [o2register-input-row :racknumber "Rack Number" "text" data-set focus]
-       [o2register-input-int-row :startingyear "Starting Year" "text" data-set focus]
-       [o2register-input-int-row :endingyear "Ending Year" "text" data-set focus]
+       [o2-select data-set bool]
+       [o2register-input-int-row :serialnumber "Serial Number" "text" data-set focus false]
+       [o2register-input-row :subdivisionname "Sub Division Name" "text" data-set focus  bool]
+       [o2register-input-row :dateofinstitution "Date Of Institution" "date" data-set focus  bool]
+       [o2register-input-row :sourceofreceipt "Source Of Receipt" "text" data-set focus  false]
+       [o2register-input-select :villagename "Village Name" data-set focus  bool]
+       [o2register-input-row :nameofthefirstparty "Name Of The First Party" "text" data-set focus  bool]
+       [o2register-input-row :dateofreceiptfrompanchayat "Date Of Receipt From Panchayat" "date" data-set focus false]
+       [o2register-input-row :dateandgistoffinalorder "Date and gist of Final Order" "date" data-set focus  false]
+       [o2register-input-row :racknumber "Rack Number" "text" data-set focus  bool]
+       [o2register-input-int-row :startingyear "Starting Year" "text" data-set focus  false] 
+       [o2register-input-int-row :endingyear "Ending Year" "text" data-set focus  false]
        [:div.box-footer
         [:button.btn.btn-default {:on-click o2register-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -2190,18 +2226,7 @@
       (http-get (str serverhost "villages/search?name=" eval) onresp))))
 
 
-(defn o2register-tags-template [id data-set]
-  [:select.form-control {:id id :value (id @data-set) }
-   (doall (for [d (get-value! :villages)]
-            ^{:key (.-id d)} [:option {:value (.-villagename d)} (.-villagename d)]))])
 
-(defn o2register-input-select [id label data-set focus]
-  (let [input-focus (r/atom nil)]
-    (fn []
-      [:div.form-group
-       [:label.col-sm-3.control-label label]
-       [:div#tagdiv.col-sm-6 [o2register-tags-template id  data-set]]
-       [:div.col-sm-3 [:div]]])))
 
 
 (defn o2register-add-template []
@@ -2210,7 +2235,7 @@
     (fn [] [o2register-template
            "o2register Add Form"
            add-data focus
-           #(o2register-add-form-onclick add-data focus)])))
+           #(o2register-add-form-onclick add-data focus) false])))
 
 (defn o2register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -2233,7 +2258,7 @@
     (fn [] [o2register-template
            "o2register Update Form"
            update-data focus
-           #(o2register-update-form-onclick update-data focus)])))
+           #(o2register-update-form-onclick update-data focus) true])))
 
 
 (defn o2register-update[id]
@@ -2345,12 +2370,22 @@
                      :nameanddescriptionofthepersonsremoved [[v/required :message "Field is required"]]
                      )))
 
-(defn o4register-input-row [id label ttype data-set focus]
+(defn o4-input-element [id ttype data-set placeholder in-focus bool]
+  [:input.form-control {:id id
+                        :type ttype
+                        :value (@data-set id)
+                        :placeholder placeholder
+                        :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                        :on-blur  #(reset! in-focus "on")
+                        :disabled bool
+                        }])
+
+(defn o4register-input-row [id label ttype data-set focus bool]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [input-element id ttype data-set label input-focus]]
+       [:div.col-sm-6 [o4-input-element id ttype data-set label input-focus bool]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (o4register-form-validator @data-set))
                           [:div]
@@ -2359,7 +2394,7 @@
                         [:div])]])))
 
 
-(defn o4register-template [doc-name data-set focus save-function]
+(defn o4register-template [doc-name data-set focus save-function bool]
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
@@ -2367,14 +2402,14 @@
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
-       [o4-select data-set]
-       [o4register-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
-       [o4register-input-row :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
-       [o4register-input-row :numberanddateoforder "Number and Date Of Order" "date" data-set focus]
-       [o4register-input-row :khasranumber "Khasra Number" "text" data-set focus]
-       [o4register-input-row :area "Area" "text" data-set focus]
-       [o4register-input-row :revenuerentofshareofplotstransferred "Revenue Rent Of Share Of Plots Transfered" "text" data-set focus]
-       [o4register-input-row :nameanddescriptionofthepersonsremoved "Name and Description Of the Persons Removed" "text" data-set focus]
+       [o4-select data-set bool]
+       [o4register-input-row :subdivisionname "Sub Division Name" "text" data-set focus bool]
+       [o4register-input-row :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus bool]
+       [o4register-input-row :numberanddateoforder "Number and Date Of Order" "date" data-set focus false]
+       [o4register-input-row :khasranumber "Khasra Number" "text" data-set focus bool]
+       [o4register-input-row :area "Area" "text" data-set focus bool]
+       [o4register-input-row :revenuerentofshareofplotstransferred "Revenue Rent Of Share Of Plots Transfered" "text" data-set focus false]
+       [o4register-input-row :nameanddescriptionofthepersonsremoved "Name and Description Of the Persons Removed" "text" data-set focus false]
        [:div.box-footer
         [:button.btn.btn-default {:on-click o4register-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -2386,7 +2421,7 @@
            "o4register Add Form"
            add-data
            focus
-           #(o4register-add-form-onclick add-data focus)])))
+           #(o4register-add-form-onclick add-data focus) false])))
 
 (defn o4register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -2406,7 +2441,7 @@
            "o4register Update Form"
            update-data
            focus
-           #(o4register-update-form-onclick update-data focus)])))
+           #(o4register-update-form-onclick update-data focus) true])))
 
 
 (defn set-o4-fields [data-set mutdata]
@@ -2439,11 +2474,14 @@
 
 
 (defn o4-select
-  [data-set]
+  [data-set bool]
   [:div.form-group
    [:label.col-sm-3.control-label "O4 Number"]
    [:div.col-sm-6
-    [:select.form-control {:id "O4-select" :value (:o4number @data-set) :on-change #(on-o4-change data-set)}
+    [:select.form-control {:id "O4-select"
+                           :value (:o4number @data-set)
+                           :on-change #(on-o4-change data-set)
+                           :disabled bool}
      (for [d (get-value! :o4mutations)]
        ^{:key (.-id d)} [:option {:value (.-o4number d)} (.-o4number d)])]]])
 
@@ -2581,11 +2619,14 @@
 
 
 (defn o6-select
-  [data-set]
+  [data-set bool]
   [:div.form-group
    [:label.col-sm-3.control-label "O6 Number"]
    [:div.col-sm-6
-    [:select.form-control {:id "O6-select" :value (:o6number @data-set) :on-change #(on-o6-change data-set)}
+    [:select.form-control {:id "O6-select"
+                           :value (:o6number @data-set)
+                           :on-change #(on-o6-change data-set)
+                           :disabled bool}
      (for [d (get-value! :o6mutations)]
        ^{:key (.-id d)} [:option {:value (.-o6number d)} (.-o6number d)])]]])
 
@@ -2599,13 +2640,23 @@
                      :dateoforderlevy [[v/required :message "Field is required"]]
                      :nameofpersonwhomrecoveryismade [[v/required :message "Field is required"]])))
 
+(defn o6-input-element [id ttype data-set placeholder in-focus bool]
+  [:input.form-control {:id id
+                        :type ttype
+                        :value (@data-set id)
+                        :placeholder placeholder
+                        :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                        :on-blur  #(reset! in-focus "on")
+                        :disabled bool
+                        }])
 
-(defn o6register-input-row [id label ttype data-set focus]
+
+(defn o6register-input-row [id label ttype data-set focus bool]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [input-element id ttype data-set label input-focus]]
+       [:div.col-sm-6 [o6-input-element id ttype data-set label input-focus bool]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (o6register-form-validator @data-set))
                           [:div]
@@ -2614,7 +2665,7 @@
                         [:div])]])))
 
 
-(defn o6register-template [doc-name data-set focus save-function]
+(defn o6register-template [doc-name data-set focus save-function bool]
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
@@ -2622,13 +2673,13 @@
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
-       [o6-select data-set]
-       [o6register-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
-       [o6register-input-row :year "Year" "date" data-set focus]
-       [o6register-input-row :mehsilnumber "Mehsil Number" "text" data-set focus]
-       [o6register-input-row :dateoforderlevy "Date of Order Levy" "date" data-set focus]
-       [o6register-input-select "Village Name" data-set focus ]
-       [o6register-input-row :nameofpersonwhomrecoveryismade "Name of Person Whom Recovery is Made" "text" data-set focus]
+       [o6-select data-set bool]
+       [o6register-input-row :subdivisionname "Sub Division Name" "text" data-set focus bool]
+       [o6register-input-row :year "Year" "date" data-set focus false]
+       [o6register-input-row :mehsilnumber "Mehsil Number" "text" data-set focus false]
+       [o6register-input-row :dateoforderlevy "Date of Order Levy" "date" data-set focus false]
+       [o6register-input-select "Village Name" data-set focus bool]
+       [o6register-input-row :nameofpersonwhomrecoveryismade "Name of Person Whom Recovery is Made" "text" data-set focus false]
        [:div.box-footer
         [:button.btn.btn-default {:on-click o6register-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -2664,17 +2715,19 @@
       (http-get (str serverhost "villages/search?name=" eval) onresp))))
 
 
-(defn o6register-tags-template [data-set]
-  [:select.form-control {:id "o6register-districts" :value (:villagename @data-set)}
+(defn o6register-tags-template [data-set bool]
+  [:select.form-control {:id "o6register-districts"
+                         :value (:villagename @data-set)
+                         :disabled bool}
    (doall (for [d (get-value! :villages)]
             ^{:key (.-id d)} [:option {:value (.-villagename d)} (.-villagename d)]))])
 
-(defn o6register-input-select [label data-set focus]
+(defn o6register-input-select [label data-set focus bool]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div#tagdiv.col-sm-6 [o6register-tags-template data-set]]
+       [:div#tagdiv.col-sm-6 [o6register-tags-template data-set bool]]
        [:div.col-sm-3 [:div]]])))
 
 
@@ -2684,7 +2737,7 @@
     (fn [] [o6register-template
            "o6register Add Form"
            add-data focus
-           #(o6register-add-form-onclick add-data focus)])))
+           #(o6register-add-form-onclick add-data focus) false])))
 
 (defn o6register-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -2700,7 +2753,7 @@
     (fn [] [o6register-template
            "o6register Update Form"
            update-data focus
-           #(o6register-update-form-onclick update-data focus)])))
+           #(o6register-update-form-onclick update-data focus) true])))
 
 
 (defn o6register-update[id]
