@@ -710,13 +710,13 @@
         [:th " "]
         [:th " "]
         [:th "Mutation Number"]
-        [:th "Name of the FirstParty"]
-        [:th "Name of The SecondParty"]
+        [:th "Name of the First Party"]
+        [:th "Name of The Second Party"]
         [:th "Date of Institution"]
         [:th "Name of P.O"]
         [:th "Name of District"]
+        [:th "Sub Division Name"]
         [:th "Name of Village"]
-        [:th "SubDivisionName"]
         [:th "O2 Number"]
         [:th "O4 Number"]
         [:th "O6 Number"]
@@ -734,8 +734,8 @@
                             [:td (.-dateofinstitution mt)]
                             [:td (.-nameofpo mt)]
                             [:td (.-name (.-district  mt))]
-                            [:td (.-name (.-village mt))]
                             [:td (.-name (.-subdivision mt))]
+                            [:td (.-name (.-village mt))]
                             [:td (.-o2number (.-numbers  mt))]
                             [:td (.-o4number (.-numbers mt))]
                             [:td (.-o6number (.-numbers mt))]
@@ -2140,7 +2140,7 @@
   [:div.form-group
    [:label.col-sm-3.control-label "O2 Number"]
    [:div.col-sm-6
-    [:select.form-control {:id "O2-select" :value "abcd" :on-change #(on-o2-change data-set)}
+    [:select.form-control {:id "O2-select" :value (:o2number @data-set) :on-change #(on-o2-change data-set)}
      (for [d (get-value! :o2mutations)]
        ^{:key d} [:option {:value d} d])]]])
 
