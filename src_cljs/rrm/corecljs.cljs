@@ -43,11 +43,12 @@
 (defn http-get [url callback]
   (xhr/send url callback))
 
-(defn http-get-auth [url callback]
-  (xhr/send url callback "GET" "" (clj->js {:rrm-auth (get-value! :token)})))
 
 (defn get-value! [k]
   (k @storage))
+
+(defn http-get-auth [url callback]
+  (xhr/send url callback "GET" "" (clj->js {:rrm-auth (get-value! :token)})))
 
 (defn page []
   (get-value! :page-location))
@@ -223,6 +224,9 @@
 
 (def pager-elem (r/adapt-react-class (aget js/ReactBootstrap "Pagination")))
 
+
+(declare render-mutations)
+
 (defn set-pager-data [sel-page-no]
   (let [mn   (.-value (.getElementById js/document "mutationnumber"))
         st   (.-value (.getElementById js/document "stitle"))
@@ -270,7 +274,6 @@
      [pager val trec]]))
 
 
-(declare render-mutations)
 
 (defn cancel [event]
   (secretary/dispatch! "/"))
@@ -332,9 +335,8 @@
                          vid mn fp sp po
                          kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))
 
-
-(defn input [label type id]
-  (row label [:input.form-control {:type type :id id :on-change on-change}]))
+;; (defn input [label type id]
+;;   (row label [:input.form-control {:type type :id id :on-change on-change}]))
 
 ;; --------------------------------------------------------------------------
 ;; mutation form
@@ -464,6 +466,10 @@
    [:div.col-sm-3 [:div]]])
 
 
+(defn form-cancel [event]
+  (secretary/dispatch! "/"))
+
+
 (defn mutation-template [doc-name data-set focus save-function]
   [:div.container
    [:div.col-md-12
@@ -497,6 +503,38 @@
        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]
        ;;[:span (str @data-set)]
        ]]]]])
+
+(defn map-mutation-data [mut]
+  {:id (if (nil? (mut :id))0 (int (mut :id))) :nameofthefirstparty (mut :nameofthefirstparty)
+   :nameofthesecondparty (:nameofthesecondparty mut) :dateofinstitution (mut :dateofinstitution) :nameofpo (mut :nameofpo)
+   :dateofdecision (:dateofdecision mut) :title (:title mut) :area (:area mut)
+   :numbers {:mutationnumber (mut :mutationnumber) :khasranumber (mut :khasranumber) :racknumber (mut :racknumber)
+             :o4number (mut :o4number) :o2number (mut :o2number) :khatakhatuninumber (mut :khatakhatuninumber)
+             :o6number (mut :o6number)}
+   :village {:id (str (mut :villageid))  :name ""}
+   :subdivision {:id (mut :subdivisionid) :name ""}
+   :district {:id (mut :districtid) :name ""}
+   :senddate (mut :senddate)
+   :receiveddate (mut :receiveddate)
+   :remarks (mut :remarks)})
+
+
+(defn add-form-onclick [data-set focus]
+  (if (= nil (form-validator @data-set))
+    (let [onres (fn[json]
+                  (secretary/dispatch! "/"))]
+      (http-post (str serverhost "mutations")
+                 onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
+    (reset! focus "on")))
+
+(defn update-form-onclick [data-set focus]
+  (if (= nil (form-validator @data-set))
+    (let [onres (fn[data]
+                  (secretary/dispatch! "/"))]
+      (http-put (str serverhost "mutations/" (:id @data-set))
+                onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set))))))
+  (reset! focus "on"))
+
 
 (defn mutation-add-template []
   (let [add-data (r/atom {:isactive true})
@@ -532,40 +570,8 @@
            "Mutation Update Form"
            update-data
            focus
-           #(update-form-onclick update-data focus) sub-division-id])))
+           #(update-form-onclick update-data focus)])))
 
-(defn map-mutation-data [mut]
-  {:id (if (nil? (mut :id))0 (int (mut :id))) :nameofthefirstparty (mut :nameofthefirstparty)
-   :nameofthesecondparty (:nameofthesecondparty mut) :dateofinstitution (mut :dateofinstitution) :nameofpo (mut :nameofpo)
-   :dateofdecision (:dateofdecision mut) :title (:title mut) :area (:area mut)
-   :numbers {:mutationnumber (mut :mutationnumber) :khasranumber (mut :khasranumber) :racknumber (mut :racknumber)
-             :o4number (mut :o4number) :o2number (mut :o2number) :khatakhatuninumber (mut :khatakhatuninumber)
-             :o6number (mut :o6number)}
-   :village {:id (str (mut :villageid))  :name ""}
-   :subdivision {:id (mut :subdivisionid) :name ""}
-   :district {:id (mut :districtid) :name ""}
-   :senddate (mut :senddate)
-   :receiveddate (mut :receiveddate)
-   :remarks (mut :remarks)})
-
-(defn add-form-onclick [data-set focus]
-  (if (= nil (form-validator @data-set))
-    (let [onres (fn[json]
-                  (secretary/dispatch! "/"))]
-      (http-post (str serverhost "mutations")
-                 onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
-    (reset! focus "on")))
-
-(defn update-form-onclick [data-set focus]
-  (if (= nil (form-validator @data-set))
-    (let [onres (fn[data]
-                  (secretary/dispatch! "/"))]
-      (http-put (str serverhost "mutations/" (:id @data-set))
-                onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set))))))
-  (reset! focus "on"))
-
-(defn form-cancel [event]
-  (secretary/dispatch! "/"))
 
 (defn click-update[id]
   (secretary/dispatch! (str "/mutations/update/" id)))
@@ -798,8 +804,6 @@
 (defn revenue-form-validator [data-set]
   (first (b/validate data-set
                      :serialnumber [[v/required :message "Field is required Must be number"]]
-                     :subdivisionname [[v/required :message "Field is required"]]
-                     :tehsil [[v/required :message "Field is required"]]
                      :year [[v/required :message "Field is required"]]
                      :racknumber [[v/required :message "Field is required"]]
                      :description [[v/required :message "Field is required"]])))
@@ -842,6 +846,47 @@
                         [:div])]])))
 
 
+(defn rev-sub-onchange [id val data-set]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (set-key-value :villages dt)))]
+    (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
+        (swap! data-set assoc id (js/parseInt val)))))
+
+(defn rev-sub-sel-tag [id data data-set]
+  [:select.form-control {:id id
+                         :value (@data-set id)
+                         :on-change #(rev-sub-onchange  id (-> % .-target .-value) data-set)}
+   [:option {:value 0} "--Select--"]
+   (for [d  data]
+     ^{:key (.-id d) }
+     [:option {:value (.-id d)} (.-subdivisionname d)])])
+
+(defn rev-form-sub-sel [label id opt-data data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label label]
+   [:div.col-sm-6 [rev-sub-sel-tag id opt-data data-set]]
+   [:div.col-sm-3 [:div]]])
+
+
+(defn rev-villages-sel-tag [id data data-set ]
+  [:select.form-control {:id id
+                         :value (@data-set id)
+                         :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
+   [:option {:value 0} "--Select--"]
+   (for [d  data]
+     ^{:key (.-id d) }
+     [:option {:value (.-id d)} (.-villagename d)])])
+
+(defn rev-form-villages-sel [label id opt-data data-set]
+  [:div.form-group
+   [:label.col-sm-3.control-label label]
+   [:div.col-sm-6 [rev-villages-sel-tag id opt-data data-set]]
+   [:div.col-sm-3 [:div]]])
+
+(defn revenue-form-cancel [event]
+  (secretary/dispatch! "/revenue"))
+
 (defn revenue-template [doc-name data-set focus save-function]
   [:div.container
    [:div.col-md-12
@@ -851,9 +896,10 @@
      [:div.form-horizontal
       [:div.box-body
        [revenue-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [revenue-input-select "Village Name" data-set focus ]
-       [revenue-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
-       [revenue-input-row :tehsil "Tehsil" "text" data-set focus]
+       [rev-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [rev-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       ;; [revenue-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
+       ;; [revenue-input-select "Village Name" data-set focus ]
        [revenue-input-row :year "Year" "date" data-set focus]
        [revenue-input-row :racknumber "Rack Number" "text" data-set focus]
        [revenue-input-row :description "description" "text" data-set focus]
@@ -864,21 +910,18 @@
 
 (defn revenue-add-form-onclick [data-set focus]
   (if (= nil (revenue-form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "revenue-districts")))))
-        (let [onres (fn[json] (secretary/dispatch! "/revenue"))]
+    (let [onres (fn[json] (secretary/dispatch! "/revenue"))]
           (http-post (str serverhost "revenuerecords") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on")))
+  (reset! focus "on"))
 
 
 (defn revenue-update-form-onclick [data-set focus]
   (if (= nil (revenue-form-validator @data-set))
-    (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "revenue-districts")))))
-        (let [onres (fn[data] (secretary/dispatch! "/revenue"))]
+    (let [onres (fn[data] (secretary/dispatch! "/revenue"))]
           (http-put (str serverhost "revenuerecords/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
-    (reset! focus "on")))
+    (reset! focus "on"))
 
-(defn revenue-form-cancel [event]
-  (secretary/dispatch! "/revenue"))
+
 
 (defn revenue-on-change [event]
   (let [ele (.getElementById js/document "id")
@@ -889,23 +932,6 @@
     (set-key-value :villages [])
     (when-not ( >  1 (.-length eval))
       (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
-
-
-(defn revenue-tags-template [data-set]
-  (cond (nil? (:villageid @data-set)) [:select.form-control {:id "revenue-districts"}
-                                       (for [d (get-value! :villages)]
-                                         ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)])]
-        :else [:select.form-control {:id "revenue-districts" :defaultValue (:villageid @data-set)}
-               (doall (for [d (get-value! :villages)]
-                        ^{:key (.-id d)} [:option {:value (.-id d)} (.-villagename d)]))]))
-
-(defn revenue-input-select [label data-set focus]
-  (let [input-focus (r/atom nil)]
-    (fn []
-      [:div.form-group
-       [:label.col-sm-3.control-label label]
-       [:div#tagdiv.col-sm-6 [revenue-tags-template data-set]]
-       [:div.col-sm-3 [:div]]])))
 
 
 (defn revenue-add-template []
@@ -919,10 +945,8 @@
 (defn revenue-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
                              :serialnumber (.-serialnumber dmt)
-                             :subdivisionname (.-subdivisionname dmt)
+                             :subdivisionid (.-subdivisionid dmt)
                              :villageid (.-villageid dmt)
-                             :villagename (.-villagename dmt)
-                             :tehsil (.-tehsil dmt)
                              :year (.-year dmt)
                              :racknumber (.-racknumber dmt)
                              :description (.-description dmt)
@@ -943,30 +967,22 @@
     (http-delete (str serverhost "revenuerecords/" id)  onres)))
 
 
-(defroute revenue-list "/revenue" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :revenues (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-revenue (get-value! :revenues)])))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "revenuerecords?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
-
-
 (defroute revenue-add-path "/revenue/add" []
   (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
+                       (set-key-value :subdivisions (getdata json))
                        (set-page! [revenue-add-template])))]
-    (http-get-auth (str serverhost "villages") onres)))
+    (http-get-auth (str serverhost "subdivisions") onres)))
 
 (defroute revenue-upd-path "/revenue/update/:id" [id]
   (let [onres (fn[json](
                        (set-key-value :villages (getdata json))
                        (set-page! [revenue-update-template id
                                    (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :revenues)))])))]
-    (http-get-auth (str serverhost "villages") onres)))
+                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :revenues)))])))
+        sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
+    (do
+      (http-get-auth (str serverhost "villages") onres)
+      (http-get-auth (str serverhost "subdivisions") sub-res))))
 
 (defn revenue-add [event]
   (secretary/dispatch! "/revenue/add"))
@@ -990,9 +1006,9 @@
         [:thead
          [:tr
           [:th "S.No"]
-          [:th "Name of the Village"]
           [:th "Sub Division Name"]
-          [:th "Tehsil"]
+          [:th "Name of the Village"]
+          ;; [:th "Tehsil"]
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
@@ -1003,9 +1019,9 @@
          (for [mt revenues]
            ^{:key (.-id mt)} [:tr
                               [:td (.-serialnumber mt)]
-                              [:td (.-villagename mt)]
                               [:td (.-subdivisionname mt)]
-                              [:td (.-tehsil mt)]
+                              [:td (.-villagename mt)]
+                              ;; [:td (.-tehsil mt)]
                               [:td (.-year mt)]
                               [:td (.-racknumber mt)]
                               [:td (.-description mt)]
@@ -1015,6 +1031,17 @@
                               [:td  [:a {:href "javascript:;" :on-click #(revenue-delete(.-id mt))
                                          :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+
+
+(defroute revenue-list "/revenue" []
+  (if (nil? (get-value! :user)) (set-page! [login])
+      (let [onres (fn [json]
+                    (let [dt (getdata json)]
+                      (set-key-value :revenues (.-data dt))
+                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+                      (set-page!  [render-revenue (get-value! :revenues)])))]
+        (set-key-value :is-searched-results false)
+        (http-get-auth (str serverhost "revenuerecords?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 
 ;; ---------------------------------------------------------
