@@ -902,7 +902,7 @@
        ;; [revenue-input-select "Village Name" data-set focus ]
        [revenue-input-row :year "Year" "date" data-set focus]
        [revenue-input-row :racknumber "Rack Number" "text" data-set focus]
-       [revenue-input-row :description "description" "text" data-set focus]
+       [revenue-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
         [:button.btn.btn-default {:on-click revenue-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -1118,7 +1118,7 @@
        [khasragirdwani-input-row :tehsil "Tehsil" "text" data-set focus]
        [khasragirdwani-input-row :year "Year" "date" data-set focus]
        [khasragirdwani-input-row :racknumber "Rack Number" "text" data-set focus]
-       [khasragirdwani-input-row :description "description" "text" data-set focus]
+       [khasragirdwani-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
         [:button.btn.btn-default {:on-click khasragirdwani-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -1212,7 +1212,7 @@
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of khasragirdwani Records"]]
+     [:h3 "List of Khasragirdwani Records"]]
     [:div.row
      [:div.col-md-12
       [:div.form-group
@@ -1341,7 +1341,7 @@
        [masavi-input-row :tehsil "Tehsil" "text" data-set focus]
        [masavi-input-row :year "Year" "date" data-set focus]
        [masavi-input-row :racknumber "Rack Number" "text" data-set focus]
-       [masavi-input-row :description "description" "text" data-set focus]
+       [masavi-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
         [:button.btn.btn-default {:on-click masavi-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -1428,7 +1428,7 @@
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of masavi Records"]]
+     [:h3 "List of Masavi Records"]]
     [:div.row
      [:div.col-md-12
       [:div.form-group
@@ -1559,7 +1559,7 @@
        [consolidation-input-row :tehsil "Tehsil" "text" data-set focus]
        [consolidation-input-row :year "Year" "date" data-set focus]
        [consolidation-input-row :racknumber "Rack Number" "text" data-set focus]
-       [consolidation-input-row :description "description" "text" data-set focus]
+       [consolidation-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
         [:button.btn.btn-default {:on-click consolidation-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -1644,7 +1644,7 @@
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of consolidation Records"]]
+     [:h3 "List of Consolidation Records"]]
     [:div.row
      [:div.col-md-12
       [:div.form-group
@@ -1770,7 +1770,7 @@
        [fieldbook-input-row :tehsil "Tehsil" "text" data-set focus]
        [fieldbook-input-row :year "Year" "date" data-set focus]
        [fieldbook-input-row :racknumber "Rack Number" "text" data-set focus]
-       [fieldbook-input-row :description "description" "text" data-set focus]
+       [fieldbook-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
         [:button.btn.btn-default {:on-click fieldbook-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -1859,7 +1859,7 @@
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of fieldbook Records"]]
+     [:h3 "List of Field Book Records"]]
     [:div.row
      [:div.col-md-12
       [:div.form-group
@@ -2037,7 +2037,7 @@
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of misc Records"]]
+     [:h3 "List of Misc Records"]]
     [:div.row
      [:div.col-md-12
       [:div.form-group
@@ -2203,7 +2203,7 @@
        [o2register-input-select :villagename "Village Name" data-set focus ]
        [o2register-input-row :nameofthefirstparty "Name Of The First Party" "text" data-set focus]
        [o2register-input-row :dateofreceiptfrompanchayat "Date Of Receipt From Panchayat" "date" data-set focus]
-       [o2register-input-row :dateandgistoffinalorder "Date and gist of Final Order" "date" data-set focus]
+       [o2register-input-row :dateandgistoffinalorder "Date and Gist of Final Order" "date" data-set focus]
        [o2register-input-row :racknumber "Rack Number" "text" data-set focus]
        [o2register-input-int-row :startingyear "Starting Year" "text" data-set focus]
        [o2register-input-int-row :endingyear "Ending Year" "text" data-set focus]
@@ -2309,7 +2309,7 @@
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of o2register Records"]]
+     [:h3 "List of O2 Register Records"]]
     [:div.row
      [:div.col-md-12
       [:div.form-group
@@ -2449,11 +2449,11 @@
        [o4-select data-set]
        [o4register-input-row :subdivisionname "Sub Division Name" "text" data-set focus]
        [o4register-input-row :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
-       [o4register-input-row :numberanddateoforder "Number and Date Of Order" "date" data-set focus]
+       [o4register-input-row :numberanddateoforder "Number and Date of Order" "date" data-set focus]
        [o4register-input-row :khasranumber "Khasra Number" "text" data-set focus]
        [o4register-input-row :area "Area" "text" data-set focus]
-       [o4register-input-row :revenuerentofshareofplotstransferred "Revenue Rent Of Share Of Plots Transfered" "text" data-set focus]
-       [o4register-input-row :nameanddescriptionofthepersonsremoved "Name and Description Of the Persons Removed" "text" data-set focus]
+       [o4register-input-row :revenuerentofshareofplotstransferred "Revenue Rent of Share of Plots Transfered" "text" data-set focus]
+       [o4register-input-row :nameanddescriptionofthepersonsremoved "Name and Description of the Persons Removed" "text" data-set focus]
        [:div.box-footer
         [:button.btn.btn-default {:on-click o4register-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -2539,7 +2539,7 @@
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of o4register Records"]]
+     [:h3 "List of O4 Register Records"]]
     [:div.row
      [:div.col-md-12
       [:div.form-group
@@ -2594,10 +2594,6 @@
 
 ;; ---------------------------------------------------------
 ;; o6register-records
-
-
-
-
 
 (defn o6register-form-validator [data-set]
   (first (b/validate data-set
@@ -2720,8 +2716,6 @@
       (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
 
 
-
-
 (defn o6register-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
@@ -2783,7 +2777,7 @@
   [:div
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of o6register Records"]]
+     [:h3 "List of O6 Register Records"]]
     [:div.row
      [:div.col-md-12
       [:div.form-group
@@ -2821,6 +2815,7 @@
                               [:td  [:a {:href "javascript:;" :on-click #(o6register-delete(.-id mt))
                                          :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+
 
 
 (defroute o6register-list "/o6register" []
