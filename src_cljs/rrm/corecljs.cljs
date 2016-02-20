@@ -146,6 +146,11 @@
 (defn is-authenticated? []
   (not (nil? (get-value! :user))))
 
+(defn is-admin-or-super-admin []
+  (let [role (.-role (get-value! :user))]
+    (or (= role "admin")
+        (= role "superadmin"))))
+
 (defn set-page! [currnt-page]
   (if (nil? (get-value! :user)) (set-key-value :page-location [login])
       (set-key-value :page-location
@@ -713,8 +718,8 @@
      [:table {:class "table table-bordered table-striped dataTable"}
       [:thead
        [:tr
-        [:th " "]
-        [:th " "]
+        (when (is-admin-or-super-admin) [:th ""])
+        (when (is-admin-or-super-admin) [:th " "])
         [:th "Mutation Number"]
         [:th "Name of the First Party"]
         [:th "Name of The Second Party"]
@@ -730,24 +735,24 @@
         [:th "Received Date "]
         ]]
       [:tbody
-       (for [mt mutations]
-         ^{:key (.-id mt)} [:tr
-                            [:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                            [:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
-                            [:td (.-mutationnumber (.-numbers mt))]
-                            [:td (.-nameofthefirstparty mt)]
-                            [:td (.-nameofthesecondparty mt)]
-                            [:td (.-dateofinstitution mt)]
-                            [:td (.-nameofpo mt)]
-                            [:td (.-name (.-district  mt))]
-                            [:td (.-name (.-subdivision mt))]
-                            [:td (.-name (.-village mt))]
-                            [:td (.-o2number (.-numbers  mt))]
-                            [:td (.-o4number (.-numbers mt))]
-                            [:td (.-o6number (.-numbers mt))]
-                            [:td (.-senddate mt)]
-                            [:td (.-receiveddate mt)]
-                            ])]]
+       (doall (for [mt mutations]
+                ^{:key (.-id mt)} [:tr
+                                   (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
+                                   (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ])
+                                   [:td (.-mutationnumber (.-numbers mt))]
+                                   [:td (.-nameofthefirstparty mt)]
+                                   [:td (.-nameofthesecondparty mt)]
+                                   [:td (.-dateofinstitution mt)]
+                                   [:td (.-nameofpo mt)]
+                                   [:td (.-name (.-district  mt))]
+                                   [:td (.-name (.-subdivision mt))]
+                                   [:td (.-name (.-village mt))]
+                                   [:td (.-o2number (.-numbers  mt))]
+                                   [:td (.-o4number (.-numbers mt))]
+                                   [:td (.-o6number (.-numbers mt))]
+                                   [:td (.-senddate mt)]
+                                   [:td (.-receiveddate mt)]
+                                   ]))]]
      [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
 
 
@@ -1012,24 +1017,23 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          [:th " "]
-          [:th " "]
-          ]]
+          (when (is-admin-or-super-admin)[:th " "])
+          (when (is-admin-or-super-admin)[:th " "])]]
         [:tbody
-         (for [mt revenues]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-serialnumber mt)]
-                              [:td (.-subdivisionname mt)]
-                              [:td (.-villagename mt)]
-                              ;; [:td (.-tehsil mt)]
-                              [:td (.-year mt)]
-                              [:td (.-racknumber mt)]
-                              [:td (.-description mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(revenue-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(revenue-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall (for [mt revenues]
+                  ^{:key (.-id mt)} [:tr
+                                     [:td (.-serialnumber mt)]
+                                     [:td (.-subdivisionname mt)]
+                                     [:td (.-villagename mt)]
+                                     ;; [:td (.-tehsil mt)]
+                                     [:td (.-year mt)]
+                                     [:td (.-racknumber mt)]
+                                     [:td (.-description mt)]
+                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                              :on-click  #(revenue-update(.-id mt))
+                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
+                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(revenue-delete(.-id mt))
+                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -1233,24 +1237,24 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          [:th " "]
-          [:th " "]
+          (when (is-admin-or-super-admin)[:th " "]) 
+          (when (is-admin-or-super-admin)[:th " "]) 
           ]]
         [:tbody
-         (for [mt khasragirdwanis]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-serialnumber mt)]
-                              [:td (.-villagename mt)]
-                              [:td (.-subdivisionname mt)]
-                              [:td (.-tehsil mt)]
-                              [:td (.-year mt)]
-                              [:td (.-racknumber mt)]
-                              [:td (.-description mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(khasragirdwani-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(khasragirdwani-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall (for [mt khasragirdwanis]
+                  ^{:key (.-id mt)} [:tr
+                                     [:td (.-serialnumber mt)]
+                                     [:td (.-villagename mt)]
+                                     [:td (.-subdivisionname mt)]
+                                     [:td (.-tehsil mt)]
+                                     [:td (.-year mt)]
+                                     [:td (.-racknumber mt)]
+                                     [:td (.-description mt)]
+                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                              :on-click  #(khasragirdwani-update(.-id mt))
+                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
+                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(khasragirdwani-delete(.-id mt))
+                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -1449,24 +1453,24 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          [:th " "]
-          [:th " "]
+          (when (is-admin-or-super-admin)[:th " "]) 
+          (when (is-admin-or-super-admin)[:th " "])
           ]]
         [:tbody
-         (for [mt masavis]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-serialnumber mt)]
-                              [:td (.-villagename mt)]
-                              [:td (.-subdivisionname mt)]
-                              [:td (.-tehsil mt)]
-                              [:td (.-year mt)]
-                              [:td (.-racknumber mt)]
-                              [:td (.-description mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(masavi-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(masavi-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall (for [mt masavis]
+                  ^{:key (.-id mt)} [:tr
+                                     [:td (.-serialnumber mt)]
+                                     [:td (.-villagename mt)]
+                                     [:td (.-subdivisionname mt)]
+                                     [:td (.-tehsil mt)]
+                                     [:td (.-year mt)]
+                                     [:td (.-racknumber mt)]
+                                     [:td (.-description mt)]
+                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                              :on-click  #(masavi-update(.-id mt))
+                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
+                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(masavi-delete(.-id mt))
+                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -1665,24 +1669,24 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          [:th " "]
-          [:th " "]
+          (when (is-admin-or-super-admin)[:th " "]) 
+          (when (is-admin-or-super-admin)[:th " "]) 
           ]]
         [:tbody
-         (for [mt consolidations]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-serialnumber mt)]
-                              [:td (.-villagename mt)]
-                              [:td (.-subdivisionname mt)]
-                              [:td (.-tehsil mt)]
-                              [:td (.-year mt)]
-                              [:td (.-racknumber mt)]
-                              [:td (.-description mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(consolidation-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(consolidation-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall (for [mt consolidations]
+                  ^{:key (.-id mt)} [:tr
+                                     [:td (.-serialnumber mt)]
+                                     [:td (.-villagename mt)]
+                                     [:td (.-subdivisionname mt)]
+                                     [:td (.-tehsil mt)]
+                                     [:td (.-year mt)]
+                                     [:td (.-racknumber mt)]
+                                     [:td (.-description mt)]
+                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                              :on-click  #(consolidation-update(.-id mt))
+                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
+                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(consolidation-delete(.-id mt))
+                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 (defroute consolidation-list "/consolidation" []
@@ -1880,24 +1884,24 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          [:th " "]
-          [:th " "]
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           ]]
         [:tbody
-         (for [mt fieldbooks]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-serialnumber mt)]
-                              [:td (.-villagename mt)]
-                              [:td (.-subdivisionname mt)]
-                              [:td (.-tehsil mt)]
-                              [:td (.-year mt)]
-                              [:td (.-racknumber mt)]
-                              [:td (.-description mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(fieldbook-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(fieldbook-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall(for [mt fieldbooks]
+                 ^{:key (.-id mt)} [:tr
+                                    [:td (.-serialnumber mt)]
+                                    [:td (.-villagename mt)]
+                                    [:td (.-subdivisionname mt)]
+                                    [:td (.-tehsil mt)]
+                                    [:td (.-year mt)]
+                                    [:td (.-racknumber mt)]
+                                    [:td (.-description mt)]
+                                    (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                             :on-click  #(fieldbook-update(.-id mt))
+                                                                             :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
+                                    (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(fieldbook-delete(.-id mt))
+                                                                              :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -2057,23 +2061,23 @@
           [:th "Remarks"]
           [:th "Dispatched Date"]
           [:th "Received Date"]
-          [:th " "]
-          [:th " "]
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           ]]
         [:tbody
-         (for [mt miscs]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-filenumber mt)]
-                              [:td (.-subject mt)]
-                              [:td (.-title mt)]
-                              [:td (.-remarks mt)]
-                              [:td (.-dispatcheddate mt)]
-                              [:td (.-receiveddate mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(misc-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(misc-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall (for [mt miscs]
+                  ^{:key (.-id mt)} [:tr
+                                     [:td (.-filenumber mt)]
+                                     [:td (.-subject mt)]
+                                     [:td (.-title mt)]
+                                     [:td (.-remarks mt)]
+                                     [:td (.-dispatcheddate mt)]
+                                     [:td (.-receiveddate mt)]
+                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                              :on-click  #(misc-update(.-id mt))
+                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
+                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(misc-delete(.-id mt))
+                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -2334,28 +2338,28 @@
           [:th "Rack NUmber"]
           [:th "Starting Year"]
           [:th "Ending Year"]
-          [:th " "]
-          [:th " "]
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           ]]
         [:tbody
-         (for [mt o2registers]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-serialnumber mt)]
-                              [:td (.-subdivisionname mt)]
-                              [:td (.-dateofinstitution mt)]
-                              [:td (.-sourceofreceipt mt)]
-                              [:td (.-villagename mt)]
-                              [:td (.-nameofthefirstparty mt)]
-                              [:td (.-dateofreceiptfrompanchayat mt)]
-                              [:td (.-dateandgistoffinalorder mt)]
-                              [:td (.-racknumber mt)]
-                              [:td (.-startingyear mt)]
-                              [:td (.-endingyear mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(o2register-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(o2register-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall (for [mt o2registers]
+                  ^{:key (.-id mt)} [:tr
+                                     [:td (.-serialnumber mt)]
+                                     [:td (.-subdivisionname mt)]
+                                     [:td (.-dateofinstitution mt)]
+                                     [:td (.-sourceofreceipt mt)]
+                                     [:td (.-villagename mt)]
+                                     [:td (.-nameofthefirstparty mt)]
+                                     [:td (.-dateofreceiptfrompanchayat mt)]
+                                     [:td (.-dateandgistoffinalorder mt)]
+                                     [:td (.-racknumber mt)]
+                                     [:td (.-startingyear mt)]
+                                     [:td (.-endingyear mt)]
+                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                              :on-click  #(o2register-update(.-id mt))
+                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
+                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(o2register-delete(.-id mt))
+                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 (defroute o2register-list "/o2register" []
@@ -2560,24 +2564,24 @@
           [:th "Area"]
           [:th "Revenue of Share of Plots Transfered"]
           [:th "Name and Description of the Persons Removed"]
-          [:th " "]
-          [:th " "]
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           ]]
         [:tbody
-         (for [mt o4registers]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-subdivisionname mt)]
-                              [:td (.-khatakhatuninumber mt)]
-                              [:td (.-numberanddateoforder mt)]
-                              [:td (.-khasranumber mt)]
-                              [:td (.-area mt)]
-                              [:td (.-revenuerentofshareofplotstransferred mt)]
-                              [:td (.-nameanddescriptionofthepersonsremoved mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(o4register-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(o4register-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall (for [mt o4registers]
+                  ^{:key (.-id mt)} [:tr
+                                     [:td (.-subdivisionname mt)]
+                                     [:td (.-khatakhatuninumber mt)]
+                                     [:td (.-numberanddateoforder mt)]
+                                     [:td (.-khasranumber mt)]
+                                     [:td (.-area mt)]
+                                     [:td (.-revenuerentofshareofplotstransferred mt)]
+                                     [:td (.-nameanddescriptionofthepersonsremoved mt)]
+                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                              :on-click  #(o4register-update(.-id mt))
+                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
+                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(o4register-delete(.-id mt))
+                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -2797,23 +2801,23 @@
           [:th "Date of Orederlevy"]
           [:th "Village Name"]
           [:th "name of Person Whom Recovery is Made"]
-          [:th " "]
-          [:th " "]
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           ]]
         [:tbody
-         (for [mt o6registers]
-           ^{:key (.-id mt)} [:tr
-                              [:td (.-subdivisionname mt)]
-                              [:td (.-year mt)]
-                              [:td (.-mehsilnumber mt)]
-                              [:td (.-dateoforderlevy mt)]
-                              [:td (.-villagename mt)]
-                              [:td (.-nameofpersonwhomrecoveryismade mt)]
-                              [:td [:a {:href "javascript:;"
-                                        :on-click  #(o6register-update(.-id mt))
-                                        :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(o6register-delete(.-id mt))
-                                         :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]]])]]
+         (doall (for [mt o6registers]
+                  ^{:key (.-id mt)} [:tr
+                                     [:td (.-subdivisionname mt)]
+                                     [:td (.-year mt)]
+                                     [:td (.-mehsilnumber mt)]
+                                     [:td (.-dateoforderlevy mt)]
+                                     [:td (.-villagename mt)]
+                                     [:td (.-nameofpersonwhomrecoveryismade mt)]
+                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
+                                                                              :on-click  #(o6register-update(.-id mt))
+                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
+                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(o6register-delete(.-id mt))
+                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -2860,7 +2864,7 @@
 (defn main
   []
   (secretary/set-config! :prefix "#")
-  (set-key-value :page-location [render-mutations])
+  (set-key-value :page-location [login])
   (r/render [page]
             (.getElementById js/document "app1"))
   (let [history (History.)]
