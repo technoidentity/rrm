@@ -24,10 +24,14 @@
   (render (io/resource "index.html") req))
 
 
+(defn normal-user
+  ""
+  [req]
+  (render (io/resource "index1.html") req))
+
 (defroutes app-routes
   (GET "/" [] home)
-
-
+  (GET "/citizens" [] normal-user)
   (route/resources "/static")
   (route/not-found "<h1>Page not found</h1>"))
 

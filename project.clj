@@ -54,4 +54,13 @@
                            :optimizations :none
                            :asset-path "/static/js/out"
                            :main "rrm.corecljs"
+                           :pretty-print true}}
+               {:id "app1"
+                :source-paths ["citizen_cljs/"]
+                :compiler {:output-to "resources/public/js/app1.js"
+                           :output-dir "resources/public/js/out1"
+                           :source-map true
+                           :optimizations :none
+                           :asset-path "/static/js/out1"
+                           :main "rrm.citizen"
                            :pretty-print true}}]})
