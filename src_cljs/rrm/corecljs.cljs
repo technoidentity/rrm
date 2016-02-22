@@ -76,10 +76,31 @@
 ;; login-form with validations
 ;; =====================================================================================================
 
+(defn set-login-page []
+  (do
+    (set! (.-className (dom/getElement "body")) "hold-transistion skin-blue")
+    (set! (.-className (dom/getElement "wrapper")) "")
+    (set! (.-display (.-style (dom/getElement "mainsb"))) "none")
+    (set! (.-className (dom/getElement "cntwrapper")) "")
+    (set! (.-display (.-style (dom/getElement "footer"))) "none")
+    (set! (.-display (.-style (dom/getElement "un2"))) "none")))
+
+(defn reset-login-page []
+  (let [cusr (.-username (get-value! :user))]
+    (set! (.-className (dom/getElement "body")) "skin-blue sidebar-mini")
+    (set! (.-className (dom/getElement "wrapper")) "wrapper")
+    (set! (.-display (.-style (dom/getElement "mainsb"))) "block")
+    (set! (.-className (dom/getElement "cntwrapper")) "content-wrapper")
+    (set! (.-display (.-style (dom/getElement "footer"))) "block")
+    (set! (.-display (.-style (dom/getElement "un2"))) "block")
+    (set! (.-innerHTML (dom/getElement "un")) cusr)
+    (set! (.-innerHTML (dom/getElement "un1")) cusr)))
+
+
 (defn login-validator [data-set]
   (first (b/validate data-set
                      :username [[v/required :message "Filed is required"]
-                         [v/email :message "Enter valid email-id"]]
+                                [v/email :message "Enter valid email-id"]]
                      :password [[v/required :message "Filed is required"]
                                 [v/string  :message "Enter valid password"]])))
 
@@ -116,6 +137,8 @@
                    (if (= (get-status json) 200)
                      ((set-key-value :user (.-_2 (getdata json)))
                       (set-key-value :token (.-_1 (getdata json)))
+                      (js/console.log (.-_2 (getdata json)))
+                      (reset-login-page)
                       (secretary/dispatch! "/"))))]
       (http-post (str serverhost "login")
                  onresp (.serialize (Serializer.) (clj->js @data-set ))))
@@ -155,6 +178,10 @@
   (if (nil? (get-value! :user)) (set-key-value :page-location [login])
       (set-key-value :page-location
                      currnt-page)))
+(defn sign-out []
+  (set-key-value :user nil)
+  (set-page! [login])
+  (set-login-page))
 
 (defn get-total-rec-no [nos]
   (let [totrec (quot nos 10)]
@@ -2926,6 +2953,7 @@
 (defn main
   []
   (secretary/set-config! :prefix "#")
+  (set-login-page)
   (set-key-value :page-location [login])
   (r/render [page]
             (.getElementById js/document "app1"))
