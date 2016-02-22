@@ -503,27 +503,36 @@
 
 
 
-(defn form-input-check-element [id label ttype data-set focus]
-  (let [input-focus (r/atom nil)
-        check (r/atom true)]
+(defn date-input [id data-set placeholder bool]
+  [:input.form-control {:id id
+                        :type "date"
+                        :value (@data-set id)
+                        :placeholder placeholder
+                        :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                        :disabled bool
+                        }])
+
+(defn add-check-input-element [id label data-set focus]
+  (let [check (r/atom true)]
     (fn []
-      (if (id @data-set)
-        [:div.form-group
-         [:label.col-sm-3.control-label label]
-         [:div.col-sm-6 [input-element id ttype data-set label input-focus]]
-         [:div.col-sm-3 [:div]]]
-        [:div.form-group
-         [:div.col-sm-1
-          [:input {:type "checkbox"
-                   :style {:width "17px" :height "17px" :float "right"}
-                   :on-change #(swap! check not)}]] 
-         [:label.col-sm-2.control-label label]
-         [:div.col-sm-6
-          (if @check
-            [:div]
-            [input-element id ttype data-set label input-focus])]
-         [:div.col-sm-3 [:div]]]
-        ))))
+      [:div
+       [:div.form-group
+        [:div.col-sm-3
+         [:input {:type "checkbox"
+                  :style {:width "17px" :height "17px" :float "right"}
+                  :on-change #(swap! check not)}]] 
+        [:label.col-sm-6 "Out side Record Room"]
+        [:div.col-sm-3 [:div]]]
+       (if @check
+         [:div]
+         [:div
+          [:div.form-group
+           [:label.col-sm-3.control-label label]
+           [:div.col-sm-6 [date-input id data-set label false]]
+           [:div.col-sm-3 [:div]]]
+          [form-input-element :remarks "Remarks" "text" data-set focus]
+          ])])))
+
 
 (defn add-mutation-template [doc-name data-set focus save-function]
   [:div.container
@@ -550,8 +559,7 @@
        [form-input-element :o4number "O4 Number" "text" data-set focus]
        [form-input-element :o6number "O6 Number" "text" data-set focus]
        [form-input-element :racknumber "Rack Number" "text" data-set focus]
-       [form-input-check-element :senddate "Send Date" "date" data-set focus]
-       [form-input-element :remarks "Remarks" "text" data-set focus]
+       [add-check-input-element :senddate "Send Date" data-set focus]
        ]
       [:div.box-footer
        [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
@@ -559,6 +567,44 @@
        ;;[:span (str @data-set)]
        ]]]]])
 
+(defn upd-check-input-element [data-set focus]
+  (let [check1 (r/atom true)
+        check2 (r/atom true)]
+    (fn []
+      [:div
+       (if (:senddate @data-set)
+         [:div.form-group
+          [:label.col-sm-3.control-label "Send Date"]
+          [:div.col-sm-6 [date-input :senddate data-set "Send Date" true]]
+          [:div.col-sm-3 [:div]]]
+         [:div
+          [:div.form-group
+           [:div.col-sm-3
+            [:input {:type "checkbox"
+                     :style {:width "17px" :height "17px" :float "right"}
+                     :on-change #(swap! check1 not)}]] 
+           [:label.col-sm-6 "Check here to enter Send date"]
+           [:div.col-sm-3 [:div]]]
+          (if @check1
+            [:div]
+            [:div.form-group
+             [:label.col-sm-3.control-label "Send Date"]
+             [:div.col-sm-6 [date-input :senddate data-set "Send Date" false]]
+             [:div.col-sm-3 [:div]]])])
+       [:div.form-group
+        [:div.col-sm-3
+         [:input {:type "checkbox"
+                  :style {:width "17px" :height "17px" :float "right"}
+                  :on-change #(swap! check2 not)}]] 
+        [:label.col-sm-6 "Check here to enter received date"]
+        [:div.col-sm-3 [:div]]]
+       (if @check2
+         [:div]
+         [:div.form-group
+          [:label.col-sm-3.control-label "Received Date"]
+          [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
+          [:div.col-sm-3 [:div]]])
+       [form-input-element :remarks "Remarks" "text" data-set focus]])))
 
 
 
@@ -587,9 +633,7 @@
        [form-input-element :o4number "O4 Number" "text" data-set focus]
        [form-input-element :o6number "O6 Number" "text" data-set focus]
        [form-input-element :racknumber "Rack Number" "text" data-set focus]
-       [form-input-check-element :senddate "Send Date" "date" data-set focus]
-       [form-input-check-element :receiveddate "Received Date" "date" data-set focus]
-       [form-input-element :remarks "Remarks" "text" data-set focus]
+       [upd-check-input-element data-set focus]
        ]
       [:div.box-footer
        [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
@@ -2014,7 +2058,7 @@
                      :title [[v/required :message "Field is required"]]
                      :remarks [[v/required :message "Field is required"]]
                      :dispatcheddate [[v/required :message "Field is required"]]
-                     :receiveddate [[v/required :message "Field is required"]]
+                     ;; :receiveddate [[v/required :message "Field is required"]]
                      )))
 
 
