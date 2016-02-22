@@ -2133,12 +2133,12 @@
      [:h3 "List of Misc Records"]]
     [:div.row
      [:div.col-md-12
-      [:div.form-group
-       [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click misc-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
+      (when (is-admin-or-super-admin)[:div.form-group
+                                      [:input {:type "button" :value "Add"
+                                               :class "btn btn-primary" :on-click misc-add}]
+                                      ;; [:input {:id "getall" :type "button" :value "Refresh"
+                                      ;;          :class "btn btn-primary" :on-click get-all-click}]
+                                      ])
       [:div {:class "box-body"}
 
        [:table {:class "table table-bordered table-striped dataTable"}
@@ -2150,7 +2150,7 @@
           [:th "Remarks"]
           [:th "Dispatched Date"]
           [:th "Received Date"]
-          (when (is-admin-or-super-admin) [:th " "])
+          [:th ""]
           (when (is-admin-or-super-admin) [:th " "])
           ]]
         [:tbody
@@ -2162,9 +2162,9 @@
                                      [:td (.-remarks mt)]
                                      [:td (.-dispatcheddate mt)]
                                      [:td (.-receiveddate mt)]
-                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                              :on-click  #(misc-update(.-id mt))
-                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
+                                     [:td [:a {:href "javascript:;"
+                                               :on-click  #(misc-update(.-id mt))
+                                               :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]] 
                                      (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(misc-delete(.-id mt))
                                                                                :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
