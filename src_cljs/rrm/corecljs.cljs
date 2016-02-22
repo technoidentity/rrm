@@ -475,7 +475,30 @@
   (secretary/dispatch! "/"))
 
 
-(defn mutation-template [doc-name data-set focus save-function]
+
+(defn form-input-check-element [id label ttype data-set focus]
+  (let [input-focus (r/atom nil)
+        check (r/atom true)]
+    (fn []
+      (if (id @data-set)
+        [:div.form-group
+         [:label.col-sm-3.control-label label]
+         [:div.col-sm-6 [input-element id ttype data-set label input-focus]]
+         [:div.col-sm-3 [:div]]]
+        [:div.form-group
+         [:div.col-sm-1
+          [:input {:type "checkbox"
+                   :style {:width "17px" :height "17px" :float "right"}
+                   :on-change #(swap! check not)}]] 
+         [:label.col-sm-2.control-label label]
+         [:div.col-sm-6
+          (if @check
+            [:div]
+            [input-element id ttype data-set label input-focus])]
+         [:div.col-sm-3 [:div]]]
+        ))))
+
+(defn add-mutation-template [doc-name data-set focus save-function]
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
@@ -500,14 +523,53 @@
        [form-input-element :o4number "O4 Number" "text" data-set focus]
        [form-input-element :o6number "O6 Number" "text" data-set focus]
        [form-input-element :racknumber "Rack Number" "text" data-set focus]
-       [form-input-element :senddate "Send Date" "date" data-set focus]
-       [form-input-element :receiveddate "Received Date" "date" data-set focus]
-       [form-input-element :remarks "Remarks" "text" data-set focus]]
+       [form-input-check-element :senddate "Send Date" "date" data-set focus]
+       [form-input-element :remarks "Remarks" "text" data-set focus]
+       ]
       [:div.box-footer
        [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]
        ;;[:span (str @data-set)]
        ]]]]])
+
+
+
+
+(defn update-mutation-template [doc-name data-set focus save-function]
+  [:div.container
+   [:div.col-md-12
+    [:div.box.box-info
+     [:div.box-header.with-border
+      [:h2.box-title doc-name]]
+     [:div.form-horizontal
+      [:div.box-body
+       [form-input-element :mutationnumber "Mutation Number" "text" data-set focus]
+       [form-input-element :nameofthefirstparty "Name of the First Party" "text" data-set focus ]
+       [form-input-element :nameofthesecondparty "Name of the Second Party" "text" data-set focus]
+       [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus]
+       [form-input-combo   :nameofpo "Name of PO" data-set focus]
+       [form-input-element :dateofdecision "Date of Decision" "date" data-set focus]
+       [form-input-element :title "Title" "text" data-set focus]
+       [form-input-element :khasranumber "Khasra Number" "text" data-set focus]
+       [form-input-element :area "Area" "text" data-set focus]
+       [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
+       [form-dist-sel "District" :districtid (:districts @storage) data-set]
+       [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [form-input-element :o2number "O2 Number" "text" data-set focus]
+       [form-input-element :o4number "O4 Number" "text" data-set focus]
+       [form-input-element :o6number "O6 Number" "text" data-set focus]
+       [form-input-element :racknumber "Rack Number" "text" data-set focus]
+       [form-input-check-element :senddate "Send Date" "date" data-set focus]
+       [form-input-check-element :receiveddate "Received Date" "date" data-set focus]
+       [form-input-element :remarks "Remarks" "text" data-set focus]
+       ]
+      [:div.box-footer
+       [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
+       [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]
+       ;;[:span (str @data-set)]
+       ]]]]])
+
 
 (defn map-mutation-data [mut]
   {:id (if (nil? (mut :id))0 (int (mut :id))) :nameofthefirstparty (mut :nameofthefirstparty)
@@ -544,7 +606,7 @@
 (defn mutation-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [mutation-template "Mutation Add Form" add-data focus #(add-form-onclick add-data focus)])))
+    (fn [] [add-mutation-template "Mutation Add Form" add-data focus #(add-form-onclick add-data focus)])))
 
 
 (defn mutation-update-template [id dmt]
@@ -571,7 +633,7 @@
                              :districtid (.-id (.-district dmt))
                              :isactive true})
         focus (r/atom nil)]
-    (fn [] [mutation-template
+    (fn [] [update-mutation-template
            "Mutation Update Form"
            update-data
            focus
