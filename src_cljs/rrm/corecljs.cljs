@@ -633,8 +633,10 @@
        [upd-check-input-element data-set focus]
        ]
       [:div.box-footer
-       [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
-       [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]
+       [:div.col-sm-8.col-md-offset-5 
+        [button-tool-bar
+         [button {:bs-style "default" :on-click form-cancel } "Cancel"]
+         [button {:bs-style "info" :on-click save-function} "Save"]]]
        ;;[:span (str @data-set)]
        ]]]]])
 
@@ -1099,8 +1101,11 @@
        [revenue-input-row :racknumber "Rack Number" "text" data-set focus]
        [revenue-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click revenue-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "default" :on-click revenue-form-cancel } "Cancel"]
+          [button {:bs-style "info" :on-click save-function} "Save"]]]
+        ]]]]]])
 
 
 (defn revenue-add-form-onclick [data-set focus]
