@@ -34,7 +34,8 @@
                                   :o6mutations {}
                                   :token ""
                                   :is-searched-results false
-                                  :user nil}))
+                                  :user nil
+                                  :message nil}))
 
 
 
@@ -188,10 +189,17 @@
         fp (.-value (.getElementById js/document "snameofthefirstparty"))
         sp (.-value (.getElementById js/document "snameofthesecondparty"))
         onres (fn [json] (let [data (getdata json)]
-                          (set-key-value :mutations (.-data data))
-                          (set-key-value :total-pages
-                                         (get-total-rec-no (.-pagesCount data)))
-                          (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1"))))]
+                           (if (empty? (.-data data))
+                             (do 
+                               (set-key-value :message "The File is not available")
+                               (set-key-value :mutations nil)
+                               (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
+                               (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1")))
+                             (do
+                               (set-key-value :message nil)
+                               (set-key-value :mutations (.-data data))
+                               (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
+                               (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1"))))))]
     (set-key-value :current-page 1)
     (set-key-value :is-searched-results true)
     (http-get (str (get-search-url
@@ -210,7 +218,11 @@
        [:div.col-sm-2 "Mutation Number"
         [:input.form-control {:id "mutationnumber"
                               :type "text"
-                              :placeholder "Enter search by mutationnumber"}]]]]
+                              :placeholder "Enter search by mutationnumber"}]]
+    
+       [:div.col-sm-6
+        [:b
+        [:h2 {:style  {:color "red"}} (str (:message @citizen-storage))]]]]]
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "District Name"
