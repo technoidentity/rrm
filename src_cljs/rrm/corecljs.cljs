@@ -533,6 +533,9 @@
           [form-input-element :remarks "Remarks" "text" data-set focus]
           ])])))
 
+(def button-tool-bar (r/adapt-react-class (aget js/ReactBootstrap "ButtonToolbar")))
+(def button (r/adapt-react-class (aget js/ReactBootstrap "Button")))
+
 
 (defn add-mutation-template [doc-name data-set focus save-function]
   [:div.container
@@ -562,50 +565,44 @@
        [add-check-input-element :senddate "Send Date" data-set focus]
        ]
       [:div.box-footer
-       [:button.btn.btn-default {:on-click form-cancel} "Cancel"]
-       [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]
+       [:div.col-sm-8.col-md-offset-5 
+        [button-tool-bar
+         [button {:bs-style "default" :on-click form-cancel } "Cancel"]
+         [button {:bs-style "info" :on-click save-function} "Save"]]]
        ;;[:span (str @data-set)]
        ]]]]])
 
 (defn upd-check-input-element [data-set focus]
-  (let [check1 (r/atom true)
-        check2 (r/atom true)]
+  (let [check (r/atom true)]
     (fn []
       [:div
-       (if (:senddate @data-set)
-         [:div.form-group
-          [:label.col-sm-3.control-label "Send Date"]
-          [:div.col-sm-6 [date-input :senddate data-set "Send Date" true]]
-          [:div.col-sm-3 [:div]]]
+       [:div.form-group
+        [:label.col-sm-3.control-label "Send Date"]
+        [:div.col-sm-6 [date-input :senddate data-set "Send Date" true]]
+        [:div.col-sm-3 [:div]]]
+       (if (:receiveddate @data-set)
+         [:div
+          [:div.form-group
+           [:label.col-sm-3.control-label "Received Date"]
+           [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
+           [:div.col-sm-3 [:div]]]
+          [form-input-element :remarks "Remarks" "text" data-set focus]]
          [:div
           [:div.form-group
            [:div.col-sm-3
             [:input {:type "checkbox"
                      :style {:width "17px" :height "17px" :float "right"}
-                     :on-change #(swap! check1 not)}]] 
-           [:label.col-sm-6 "Check here to enter Send date"]
+                     :on-change #(swap! check not)}]] 
+           [:label.col-sm-6 "Check here to enter received date"]
            [:div.col-sm-3 [:div]]]
-          (if @check1
+          (if @check
             [:div]
-            [:div.form-group
-             [:label.col-sm-3.control-label "Send Date"]
-             [:div.col-sm-6 [date-input :senddate data-set "Send Date" false]]
-             [:div.col-sm-3 [:div]]])])
-       [:div.form-group
-        [:div.col-sm-3
-         [:input {:type "checkbox"
-                  :style {:width "17px" :height "17px" :float "right"}
-                  :on-change #(swap! check2 not)}]] 
-        [:label.col-sm-6 "Check here to enter received date"]
-        [:div.col-sm-3 [:div]]]
-       (if @check2
-         [:div]
-         [:div.form-group
-          [:label.col-sm-3.control-label "Received Date"]
-          [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
-          [:div.col-sm-3 [:div]]])
-       [form-input-element :remarks "Remarks" "text" data-set focus]])))
-
+            [:div
+             [:div.form-group
+              [:label.col-sm-3.control-label "Received Date"]
+              [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
+              [:div.col-sm-3 [:div]]]
+             [form-input-element :remarks "Remarks" "text" data-set focus]])])])))
 
 
 (defn update-mutation-template [doc-name data-set focus save-function]
@@ -681,36 +678,97 @@
 
 
 (defn mutation-update-template [id dmt]
-  (let [update-data (r/atom {:id (int id)
-                             :mutationnumber (.-mutationnumber (.-numbers dmt))
-                             :nameofthefirstparty (.-nameofthefirstparty dmt)
-                             :nameofthesecondparty (.-nameofthesecondparty dmt)
-                             :dateofinstitution (.-dateofinstitution dmt)
-                             :nameofpo (.-nameofpo dmt)
-                             :dateofdecision (.-dateofdecision dmt)
-                             :title (.-title dmt)
-                             :khasranumber (.-khasranumber (.-numbers dmt))
-                             :khatakhatuninumber (.-khasranumber (.-numbers dmt))
-                             :area (.-area dmt)
-                             :o2number (.-o2number (.-numbers dmt))
-                             :o4number (.-o4number (.-numbers dmt))
-                             :o6number (.-o6number (.-numbers dmt))
-                             :racknumber (.-racknumber (.-numbers dmt))
-                             :senddate (.-senddate dmt)
-                             :receiveddate (.-receiveddate dmt)
-                             :remarks (.-remarks dmt)
-                             :villageid (.-id (.-village dmt))
-                             :subdivisionid (.-id (.-subdivision dmt))
-                             :districtid (.-id (.-district dmt))
-                             :isactive true})
-        focus (r/atom nil)]
-    (fn [] [update-mutation-template
+  (do
+     (if (and (not= nil (.-senddate dmt)) (not= nil (.-receiveddate dmt)))
+        (let [update-data (r/atom {:id (int id)
+                                 :mutationnumber (.-mutationnumber (.-numbers dmt))
+                                 :nameofthefirstparty (.-nameofthefirstparty dmt)
+                                 :nameofthesecondparty (.-nameofthesecondparty dmt)
+                                 :dateofinstitution (.-dateofinstitution dmt)
+                                 :nameofpo (.-nameofpo dmt)
+                                 :dateofdecision (.-dateofdecision dmt)
+                                 :title (.-title dmt)
+                                 :khasranumber (.-khasranumber (.-numbers dmt))
+                                 :khatakhatuninumber (.-khasranumber (.-numbers dmt))
+                                 :area (.-area dmt)
+                                 :o2number (.-o2number (.-numbers dmt))
+                                 :o4number (.-o4number (.-numbers dmt))
+                                 :o6number (.-o6number (.-numbers dmt))
+                                 :racknumber (.-racknumber (.-numbers dmt))
+                                 :senddate nil
+                                 :receiveddate nil
+                                 :remarks (.-remarks dmt)
+                                 :villageid (.-id (.-village dmt))
+                                 :subdivisionid (.-id (.-subdivision dmt))
+                                 :districtid (.-id (.-district dmt))
+                                 :isactive true})
+              focus (r/atom nil)]
+        (fn []
+          [add-mutation-template
            "Mutation Update Form"
            update-data
            focus
-           #(update-form-onclick update-data focus)])))
-
-
+           #(update-form-onclick update-data focus)]))
+        (if (= nil (.-senddate dmt))
+          (let [update-data (r/atom {:id (int id)
+                                     :mutationnumber (.-mutationnumber (.-numbers dmt))
+                                     :nameofthefirstparty (.-nameofthefirstparty dmt)
+                                     :nameofthesecondparty (.-nameofthesecondparty dmt)
+                                     :dateofinstitution (.-dateofinstitution dmt)
+                                     :nameofpo (.-nameofpo dmt)
+                                     :dateofdecision (.-dateofdecision dmt)
+                                     :title (.-title dmt)
+                                     :khasranumber (.-khasranumber (.-numbers dmt))
+                                     :khatakhatuninumber (.-khasranumber (.-numbers dmt))
+                                     :area (.-area dmt)
+                                     :o2number (.-o2number (.-numbers dmt))
+                                     :o4number (.-o4number (.-numbers dmt))
+                                     :o6number (.-o6number (.-numbers dmt))
+                                     :racknumber (.-racknumber (.-numbers dmt))
+                                     :senddate (.-senddate dmt)
+                                     :receiveddate (.-receiveddate dmt)
+                                     :remarks (.-remarks dmt)
+                                     :villageid (.-id (.-village dmt))
+                                     :subdivisionid (.-id (.-subdivision dmt))
+                                     :districtid (.-id (.-district dmt))
+                                     :isactive true})
+                focus (r/atom nil)]
+            (fn []
+              [add-mutation-template
+               "Mutation Update Form"
+               update-data
+               focus
+               #(update-form-onclick update-data focus)]))
+          (let [update-data (r/atom {:id (int id)
+                                     :mutationnumber (.-mutationnumber (.-numbers dmt))
+                                     :nameofthefirstparty (.-nameofthefirstparty dmt)
+                                     :nameofthesecondparty (.-nameofthesecondparty dmt)
+                                     :dateofinstitution (.-dateofinstitution dmt)
+                                     :nameofpo (.-nameofpo dmt)
+                                     :dateofdecision (.-dateofdecision dmt)
+                                     :title (.-title dmt)
+                                     :khasranumber (.-khasranumber (.-numbers dmt))
+                                     :khatakhatuninumber (.-khasranumber (.-numbers dmt))
+                                     :area (.-area dmt)
+                                     :o2number (.-o2number (.-numbers dmt))
+                                     :o4number (.-o4number (.-numbers dmt))
+                                     :o6number (.-o6number (.-numbers dmt))
+                                     :racknumber (.-racknumber (.-numbers dmt))
+                                     :senddate (.-senddate dmt)
+                                     :receiveddate (.-receiveddate dmt)
+                                     :remarks (.-remarks dmt)
+                                     :villageid (.-id (.-village dmt))
+                                     :subdivisionid (.-id (.-subdivision dmt))
+                                     :districtid (.-id (.-district dmt))
+                                     :isactive true})
+                focus (r/atom nil)]
+            (fn []
+              [update-mutation-template
+               "Mutation Update Form"
+               update-data
+               focus
+               #(update-form-onclick update-data focus)]))))))
+  
 (defn click-update[id]
   (secretary/dispatch! (str "/mutations/update/" id)))
 
@@ -774,8 +832,7 @@
      ^{:key (.-id d)}
      [:option {:value (.-id d)} (.-villagename d)])])
 
-(def button-tool-bar (r/adapt-react-class (aget js/ReactBootstrap "ButtonToolbar")))
-(def button (r/adapt-react-class (aget js/ReactBootstrap "Button")))
+
 
 (defn render-mutations [mutations]
   [:div
