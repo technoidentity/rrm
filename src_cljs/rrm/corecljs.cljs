@@ -43,6 +43,9 @@
 (defn http-get [url callback]
   (xhr/send url callback))
 
+(def button-tool-bar (r/adapt-react-class (aget js/ReactBootstrap "ButtonToolbar")))
+(def button (r/adapt-react-class (aget js/ReactBootstrap "Button")))
+
 
 (defn get-value! [k]
   (k @storage))
@@ -119,16 +122,17 @@
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
-       [:div.col-md-12
-        [:label label]
-        [:div.input-group.col-sm-10
-         [:span {:class span-class}]
-         [input-element id ttype data-set placeholder input-focus]]
-        (if (or @input-focus @focus)
-          (if (= nil (login-validator @data-set))
-            [:div]
-            [:div {:style  {:color "red"}} [:b (str (first ((login-validator @data-set) id)))]])
-          [:div])]])))
+       [:div.row
+        [:div.col-sm-12
+         [:label label]
+         [:div.input-group.col-sm-10
+          [:span {:class span-class}]
+          [input-element id ttype data-set placeholder input-focus]]
+         (if (or @input-focus @focus)
+           (if (= nil (login-validator @data-set))
+             [:div]
+             [:div {:style  {:color "red"}} [:b (str (first ((login-validator @data-set) id)))]])
+           [:div])]]])))
 
 
 (defn submit-login [data-set focus]
@@ -147,7 +151,8 @@
 (defn submit-button [data-set focus]
   [:div.form-group
    [:div.col-md-6
-    [:button.btn.btn-primary {:on-click #(submit-login data-set focus)} "Submit" ]]])
+    [button-tool-bar
+     [button {:bs-style "primary" :on-click #(submit-login data-set focus)} "Submit" ]]]])
 
 (defn login []
   (let [my-data (r/atom  {})
@@ -382,13 +387,13 @@
                      :dateofinstitution [[v/required :message "Field is required"]]
                      :nameofpo [[v/required :message "Field is required"]]
                      :dateofdecision [[v/required :message "Field is required"]]
-                     :title [[v/required :message "Field is required"]]
+                      :title [[v/required :message "Field is required"]]
                      :khasranumber [[v/required :message "Field is required"]]
-                     :area [[v/required :message "Field is required"]]
+                     ;; :area [[v/required :message "Field is required"]]
                      :khatakhatuninumber [[v/required :message "Field is required"]]
-                     :o2number [[v/required :message "Field is required"]]
-                     :o4number [[v/required :message "Field is required"]]
-                     :o6number [[v/required :message "Field is required"]]
+                     ;; :o2number [[v/required :message "Field is required"]]
+                     ;; :o4number [[v/required :message "Field is required"]]
+                     ;; :o6number [[v/required :message "Field is required"]]
                      :racknumber [[v/required :message "Field is required"]]
                      ;; :receiveddate [[v/required :message "Field is required"]]
                      ;; :remarks [[v/required :message "Field is required"]]
@@ -533,8 +538,6 @@
           [form-input-element :remarks "Remarks" "text" data-set focus]
           ])])))
 
-(def button-tool-bar (r/adapt-react-class (aget js/ReactBootstrap "ButtonToolbar")))
-(def button (r/adapt-react-class (aget js/ReactBootstrap "Button")))
 
 
 (defn add-mutation-template [doc-name data-set focus save-function]
@@ -601,8 +604,8 @@
              [:div.form-group
               [:label.col-sm-3.control-label "Received Date"]
               [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
-              [:div.col-sm-3 [:div]]]
-             [form-input-element :remarks "Remarks" "text" data-set focus]])])])))
+              [:div.col-sm-3 [:div]]]])
+          [form-input-element :remarks "Remarks" "text" data-set focus]])])))
 
 
 (defn update-mutation-template [doc-name data-set focus save-function]
@@ -699,7 +702,7 @@
                                  :racknumber (.-racknumber (.-numbers dmt))
                                  :senddate nil
                                  :receiveddate nil
-                                 :remarks (.-remarks dmt)
+                                 :remarks nil
                                  :villageid (.-id (.-village dmt))
                                  :subdivisionid (.-id (.-subdivision dmt))
                                  :districtid (.-id (.-district dmt))
@@ -775,9 +778,10 @@
   (secretary/dispatch! (str "/mutations/update/" id)))
 
 (defn delete[id]
-  (let [onres (fn [json]
+  (let [del-conf? (js/confirm "Are you sure you want to delete?")
+        onres (fn [json]
                 (secretary/dispatch! "/"))]
-    (http-delete (str serverhost "mutations/" id)  onres)))
+    (when del-conf? (http-delete (str serverhost "mutations/" id)  onres))))
 
 (defn add [event]
   (secretary/dispatch! "/mutations/add"))
@@ -880,10 +884,10 @@
         [:input.form-control {:id "snameofthesecondparty"
                               :type "text"
                               :placeholder "Name of the Second Party"}]]
-       [:div.col-sm-2 "Name Of P.O"
+       [:div.col-sm-2 "Name of P.O"
         [:input.form-control {:id "svillagename"
                               :list "combo"
-                              :placeholder "Name Of P.O"}[datalist]]]
+                              :placeholder "Name of P.O"}[datalist]]]
        [:div.col-sm-2 "Title"
         [:input.form-control {:id "stitle"
                               :type "text"
@@ -914,7 +918,7 @@
         (when (is-admin-or-super-admin) [:th " "])
         [:th "Mutation Number"]
         [:th "Name of the First Party"]
-        [:th "Name of The Second Party"]
+        [:th "Name of the Second Party"]
         [:th "Date of Institution"]
         [:th "Name of P.O"]
         [:th "Name of District"]
@@ -1358,7 +1362,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [khasragirdwani-template
-           "khasragirdwani Add Form"
+           "Khasragirdwani Add Form"
            add-data focus
            #(khasragirdwani-add-form-onclick add-data focus)])))
 
@@ -1375,7 +1379,7 @@
                              :isactive true})
         focus (r/atom nil)]
     (fn [] [khasragirdwani-template
-            "khasragirdwani Update Form"
+            "Khasragirdwani Update Form"
             update-data focus
             #(khasragirdwani-update-form-onclick update-data focus)])))
 
@@ -1577,7 +1581,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [masavi-template
-           "masavi Add Form"
+           "Masavi Add Form"
            add-data focus
            #(masavi-add-form-onclick add-data focus)])))
 
@@ -1593,7 +1597,7 @@
                              :description (.-description dmt)})
         focus (r/atom nil)]
     (fn [] [masavi-template
-            "masavi Update Form"
+            "Masavi Update Form"
             update-data focus
             #(masavi-update-form-onclick update-data focus)])))
 
@@ -1796,7 +1800,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [consolidation-template
-           "consolidation Add Form"
+           "Consolidation Add Form"
            add-data focus
            #(consolidation-add-form-onclick add-data focus)])))
 
@@ -1812,7 +1816,7 @@
                              :description (.-description dmt)})
         focus (r/atom nil)]
     (fn [] [consolidation-template
-            "consolidation Update Form"
+            "Consolidation Update Form"
             update-data focus
             #(consolidation-update-form-onclick update-data focus)])))
 
@@ -2007,7 +2011,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [fieldbook-template
-           "fieldbook Add Form"
+           "Field Book Add Form"
            add-data focus
            #(fieldbook-add-form-onclick add-data focus)])))
 
@@ -2023,7 +2027,7 @@
                              :description (.-description dmt)})
         focus (r/atom nil)]
     (fn [] [fieldbook-template
-            "fieldbook Update Form"
+            "Field Book Update Form"
             update-data focus
             #(fieldbook-update-form-onclick update-data focus)])))
 
@@ -2178,7 +2182,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [misc-template
-           "misc Add Form"
+           "Misc Add Form"
            add-data
            focus
            #(misc-add-form-onclick add-data focus)])))
@@ -2194,7 +2198,7 @@
                              })
         focus (r/atom nil)]
     (fn [] [misc-template
-           "misc Update Form"
+           "Misc Update Form"
            update-data
            focus
            #(misc-update-form-onclick update-data focus)])))
@@ -2444,7 +2448,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [o2register-template
-           "o2register Add Form"
+           "O2 Register Add Form"
            add-data focus
            #(o2register-add-form-onclick add-data focus)])))
 
@@ -2467,7 +2471,7 @@
                              })
         focus (r/atom nil)]
     (fn [] [o2register-template
-           "o2register Update Form"
+           "O2 Register Update Form"
            update-data focus
            #(o2register-update-form-onclick update-data focus)])))
 
@@ -2677,7 +2681,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [o4register-template
-           "o4register Add Form"
+           "O4 Register Add Form"
            add-data
            focus
            #(o4register-add-form-onclick add-data focus)])))
@@ -2697,7 +2701,7 @@
                              })
         focus (r/atom nil)]
     (fn [] [o4register-template
-           "o4register Update Form"
+           "O4 Register Update Form"
            update-data
            focus
            #(o4register-update-form-onclick update-data focus)])))
@@ -2919,7 +2923,7 @@
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [o6register-template
-           "o6register Add Form"
+           "O6 Register Add Form"
            add-data focus
            #(o6register-add-form-onclick add-data focus)])))
 
@@ -2936,7 +2940,7 @@
                              :nameofpersonwhomrecoveryismade (.-nameofpersonwhomrecoveryismade dmt)})
         focus (r/atom nil)]
     (fn [] [o6register-template
-           "o6register Update Form"
+           "O6 Register Update Form"
            update-data focus
            #(o6register-update-form-onclick update-data focus)])))
 
