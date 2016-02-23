@@ -191,7 +191,7 @@
         onres (fn [json] (let [data (getdata json)]
                            (if (empty? (.-data data))
                              (do 
-                               (set-key-value :message "The File is not available")
+                               (set-key-value :message "No Records to Display")
                                (set-key-value :mutations nil)
                                (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
                                (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1")))
@@ -218,11 +218,9 @@
        [:div.col-sm-2 "Mutation Number"
         [:input.form-control {:id "mutationnumber"
                               :type "text"
-                              :placeholder "Enter search by mutationnumber"}]]
+                              :placeholder "Enter search by mutationnumber"}]]]]
     
-       [:div.col-sm-6
-        [:b
-        [:h2 {:style  {:color "red"}} (str (:message @citizen-storage))]]]]]
+
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "District Name"
@@ -255,10 +253,10 @@
         [:input.form-control {:id "snameofthesecondparty"
                               :type "text"
                               :placeholder "Name of the Second Party"}]]
-       [:div.col-sm-2 "Name Of P.O"
+       [:div.col-sm-2 "Name of P.O"
         [:input.form-control {:id "svillagename"
                               :list "combo"
-                              :placeholder "Name Of P.O"}[datalist]]]
+                              :placeholder "Name of P.O"}[datalist]]]
        [:div.col-sm-2 "Title"
         [:input.form-control {:id "stitle"
                               :type "text"
@@ -285,7 +283,7 @@
        [:tr
         [:th "Mutation Number"]
         [:th "Name of the First Party"]
-        [:th "Name of The Second Party"]
+        [:th "Name of the Second Party"]
         [:th "Date of Institution"]
         [:th "Name of P.O"]
         [:th "Name of District"]
@@ -314,7 +312,8 @@
                                    [:td (.-senddate mt)]
                                    [:td (.-receiveddate mt)]
                                    ]))]]
-     [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
+     [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]
+     [:div [:b [:h2 {:style  {:color "red"}} (str (:message @citizen-storage))]]]]]])
 
 
 
