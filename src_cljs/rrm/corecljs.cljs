@@ -574,10 +574,12 @@
       [:div.box-footer
        [:div.col-sm-12.col-md-offset-5 
         [button-tool-bar
-         [button {:bs-style "default" :on-click form-cancel } "Cancel"]
-         [button {:bs-style "info" :on-click save-function} "Save"] 
+          [button {:bs-style "info" :on-click save-function} "Save"] 
          (when (nil? (:id @data-set)) [button {:bs-style "info" :on-click #((reset! data-set {:isactive true})
-                                                                            (reset-mut-combo-boxes))} "Refresh"])]]
+                                                                            (reset-mut-combo-boxes))} "Refresh"])
+         [button {:bs-style "default" :on-click form-cancel } "Cancel"]         
+         ]
+        ]
        ;;[:span (str @data-set)]
        ]]]]])
 
