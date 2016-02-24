@@ -33,7 +33,8 @@
                           :o6mutations {}
                           :token ""
                           :is-searched-results false
-                          :user nil}))
+                          :user nil
+                          :mutationnumbers nil}))
 
 (def serverhost "http://localhost:9000/")
 
@@ -850,19 +851,17 @@
      [:option {:value (.-id d)} (.-villagename d)])])
 
 
-(defn tags-template [data]
-  [:datalist {:id "mutationlist"}
-   (for [d data]
-     ^{:key d}
-     [:option {:value d}])])
+(defn get-data [val]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (swap! storage assoc :mutationnumbers dt)))]
+    (http-get (str  serverhost  "mutations/pluck?column=mutationnumber&value=" val ) res)))
 
-
-(defn on-change [val]
-  (let [onresp (fn [json]
-                 (let [dt (getdata json)]
-                   (r/render [tags-template dt] (.getElementById js/document "tagdiv"))))]
-    (http-get (str serverhost  "mutations/pluck?column=mutationnumber&value=" val) onresp)))
-
+(defn datalist1 [data]
+  [:datalist {:id "combo1"}
+   (for [i data]
+     ^{:key i}
+     [:option {:value i}])])
 
 (defn render-mutations [mutations]
   [:div
@@ -873,13 +872,21 @@
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "Mutation Number"
-        [:input.form-control  {:id "mutationnumber"
-                               :list "mutationlist"
-                               :type "text"
-                               :placeholder "Enter Search by Mutation Number"
-                               :on-change #(on-change (-> % .-target .-value))}
-         [:div#tagdiv tags-template]]]]]
-       
+        [:input.form-control {:id "mutationnumber"
+                              :list "combo1"
+                              :type "text"
+                              :placeholder  "Enter search by Mutation Number"
+                              :on-change #(get-data (-> % .-target .-value)) 
+                              }]
+        [datalist1 (:mutationnumbers @storage)]]]]
+
+     [:div.form-group
+      [:div.row
+       [:div {:style {:float "left" :width "48%"}} [:hr]]
+       [:span "OR"]
+       [:div {:style {:float "right" :width "48%"}} [:hr]]
+       ]]
+
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "District Name"
@@ -938,7 +945,7 @@
          [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]
         ]]]]
 
-    [:div {:class "box-body"}
+    [:div {:class "box-body table-responsive"}
      [:table {:class "table table-bordered table-striped dataTable"}
       [:thead
        [:tr
@@ -955,6 +962,9 @@
         [:th "O2 Number"]
         [:th "O4 Number"]
         [:th "O6 Number"]
+        [:th "Khasra Number"]
+        [:th "Khata khatuni Number"]
+        [:th "Rack Number"]
         [:th "Sent Date"]
         [:th "Received Date "]
         ]]
@@ -976,6 +986,9 @@
                                    [:td (.-o2number (.-numbers  mt))]
                                    [:td (.-o4number (.-numbers mt))]
                                    [:td (.-o6number (.-numbers mt))]
+                                   [:td (.-khasranumber (.-numbers mt))]
+                                   [:td (.-khatakhatuninumber (.-numbers mt))]
+                                   [:td (.-racknumber (.-numbers mt))]
                                    [:td (.-senddate mt)]
                                    [:td (.-receiveddate mt)]
                                    ]))]]

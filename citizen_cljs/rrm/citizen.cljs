@@ -127,8 +127,8 @@
     [:div.row
      [pager val trec]]))
 
-(defn datalist []
-  [:datalist {:id "combo"}
+(defn datalist1 []
+  [:datalist {:id "combo1"}
    (let [name-po ["Kumar" "Sai" "Bhaskar" "Rajesh"]]
      (for [i name-po]
        ^{:key i}
@@ -206,19 +206,17 @@
                     vid mn fp sp po
                     kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))
 
-(defn tags-template [data]
-  [:datalist {:id "mutationlist"}
-   (for [d data]
-    ^{:key d}
-     [:option {:value d}])])
+(defn get-data [val]
+  (let [res (fn [json]
+              (let [dt (getdata json)]
+                (swap! citizen-storage assoc :mutationnumbers dt)))]
+    (http-get (str  serverhost  "mutations/pluck?column=mutationnumber&value=" val ) res)))
 
-
-(defn on-change [val]
-  (let [onresp (fn [json]
-                 (let [dt (getdata json)]
-                   (r/render [tags-template dt] (.getElementById js/document "tagdiv"))))]
-    (http-get (str serverhost  "mutations/pluck?column=mutationnumber&value=" val) onresp)))
-
+(defn datalist [data]
+  [:datalist {:id "combo"}
+   (for [i data]
+     ^{:key i}
+     [:option {:value i}])])
 
 (defn render-mutations [mutations]
   [:div
@@ -229,12 +227,21 @@
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "Mutation Number"
-        [:input.form-control  {:id "mutationnumber"
-                               :list "mutationlist"
-                               :type "text"
-                               :placeholder "Enter Search by Mutation Number"
-                               :on-change #(on-change (-> % .-target .-value))}
-         [:div#tagdiv tags-template]]]]]
+        [:input.form-control {:id "mutationnumber"
+                              :list "combo"
+                              :type "text"
+                              :placeholder  "Enter search by Mutation Number"
+                              :on-change #(get-data (-> % .-target .-value)) 
+                              }]
+        [datalist (:mutationnumbers @citizen-storage)]]]]
+
+     [:div.form-group
+      [:div.row
+       [:div {:style {:float "left" :width "48%"}} [:hr]]
+       [:span "OR"]
+       [:div {:style {:float "right" :width "48%"}} [:hr]]
+       ]]
+
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "District Name"
@@ -269,8 +276,8 @@
                               :placeholder "Name of the Second Party"}]]
        [:div.col-sm-2 "Name of P.O"
         [:input.form-control {:id "svillagename"
-                              :list "combo"
-                              :placeholder "Name of P.O"}[datalist]]]
+                              :list "combo1"
+                              :placeholder "Name of P.O"}[datalist1]]]
        [:div.col-sm-2 "Title"
         [:input.form-control {:id "stitle"
                               :type "text"
@@ -291,7 +298,7 @@
          [button {:bs-style "primary" :on-click search } "Search"]
          ]]]]]
 
-    [:div {:class "box-body"}
+    [:div {:class "box-body table-responsive"}
      [:table {:class "table table-bordered table-striped dataTable"}
       [:thead
        [:tr
@@ -306,6 +313,9 @@
         [:th "O2 Number"]
         [:th "O4 Number"]
         [:th "O6 Number"]
+        [:th "Khasra Number"]
+        [:th "Khata khatuni Number"]
+        [:th "Rack Number"]
         [:th "Sent Date"]
         [:th "Received Date "]
         ]]
@@ -323,6 +333,9 @@
                                    [:td (.-o2number (.-numbers  mt))]
                                    [:td (.-o4number (.-numbers mt))]
                                    [:td (.-o6number (.-numbers mt))]
+                                   [:td (.-khasranumber (.-numbers mt))]
+                                   [:td (.-khatakhatuninumber (.-numbers mt))]
+                                   [:td (.-racknumber (.-numbers mt))]
                                    [:td (.-senddate mt)]
                                    [:td (.-receiveddate mt)]
                                    ]))]]
