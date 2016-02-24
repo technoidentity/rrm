@@ -850,6 +850,19 @@
      [:option {:value (.-id d)} (.-villagename d)])])
 
 
+(defn tags-template [data]
+  [:datalist {:id "mutationlist"}
+   (for [d data]
+     ^{:key d}
+     [:option {:value d}])])
+
+
+(defn on-change [val]
+  (let [onresp (fn [json]
+                 (let [dt (getdata json)]
+                   (r/render [tags-template dt] (.getElementById js/document "tagdiv"))))]
+    (http-get (str serverhost  "mutations/pluck?column=mutationnumber&value=" val) onresp)))
+
 
 (defn render-mutations [mutations]
   [:div
@@ -860,9 +873,13 @@
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "Mutation Number"
-        [:input.form-control {:id "mutationnumber"
-                              :type "text"
-                              :placeholder "Enter search by mutationnumber"}]]]]
+        [:input.form-control  {:id "mutationnumber"
+                               :list "mutationlist"
+                               :type "text"
+                               :placeholder "Enter Search by Mutation Number"
+                               :on-change #(on-change (-> % .-target .-value))}
+         [:div#tagdiv tags-template]]]]]
+       
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "District Name"
