@@ -141,7 +141,7 @@
                    (if (= (get-status json) 200)
                      ((set-key-value :user (.-_2 (getdata json)))
                       (set-key-value :token (.-_1 (getdata json)))
-                      (js/console.log (.-_2 (getdata json)))
+                      ;;(js/console.log (.-_2 (getdata json)))
                       (reset-login-page)
                       (secretary/dispatch! "/"))))]
       (http-post (str serverhost "login")
@@ -574,10 +574,10 @@
       [:div.box-footer
        [:div.col-sm-12.col-md-offset-5 
         [button-tool-bar
-          [button {:bs-style "info" :on-click save-function} "Save"] 
+         [button {:bs-style "success" :on-click save-function} "Save"] 
          (when (nil? (:id @data-set)) [button {:bs-style "info" :on-click #((reset! data-set {:isactive true})
                                                                             (reset-mut-combo-boxes))} "Refresh"])
-         [button {:bs-style "default" :on-click form-cancel } "Cancel"]         
+         [button {:bs-style "danger" :on-click form-cancel } "Cancel"]         
          ]
         ]
        ;;[:span (str @data-set)]
@@ -647,8 +647,8 @@
       [:div.box-footer
        [:div.col-sm-8.col-md-offset-5 
         [button-tool-bar
-         [button {:bs-style "default" :on-click form-cancel } "Cancel"]
-         [button {:bs-style "info" :on-click save-function } "Save"]]]
+         [button {:bs-style "success" :on-click save-function } "Save"]]
+        [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]
        ;;[:span (str @data-set)]
        ]]]]])
 
@@ -944,8 +944,10 @@
       [:tbody
        (doall (for [mt mutations]
                 ^{:key (.-id mt)} [:tr
-                                   (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
-                                   (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ])
+                                   ;;(when (is-admin-or-super-admin)[:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
+                                   (when (is-admin-or-super-admin) [:td  [button {:bs-style "success"  :on-click  #(click-update (.-id mt))} "Update"]])
+                                   ;;(when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ])
+                                   (when (is-admin-or-super-admin) [:td  [button {:bs-style "danger"  :on-click  #(delete (.-id mt))} "Delete"]])
                                    [:td (.-mutationnumber (.-numbers mt))]
                                    [:td (.-nameofthefirstparty mt)]
                                    [:td (.-nameofthesecondparty mt)]
@@ -1428,7 +1430,7 @@
     [:div {:class "box-header"}
      [:h3 "List of Khasragirdwani Records"]]
     [:div.row
-     [:div.col-md-12
+     [:div.col-sm-12
       [:div.form-group
        [:input {:type "button" :value "Add"
                 :class "btn btn-primary" :on-click khasragirdwani-add}]
@@ -2914,7 +2916,7 @@
 (defn o6register-update-form-onclick [data-set focus]
   (if (= nil (o6register-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :o6number (.-value (.getElementById js/document "O6-select"))))
-        (js/console.log (clj->js @data-set))
+      ;;  (js/console.log (clj->js @data-set))
         (let [onres (fn[data] (secretary/dispatch! "/o6register"))]
           (http-put (str serverhost "o6registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
