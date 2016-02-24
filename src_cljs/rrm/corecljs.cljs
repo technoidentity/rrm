@@ -992,7 +992,9 @@
                                    [:td (.-senddate mt)]
                                    [:td (.-receiveddate mt)]
                                    ]))]]
-     [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]])
+     [:div{:class "col-xs-6 col-centered col-max"} ]]
+    [:div{:class "col-xs-6 col-centered col-max"} ] [shared-state 0]
+    ]])
 
 
 (defroute mutations-list "/mutations" []
