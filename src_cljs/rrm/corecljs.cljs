@@ -388,7 +388,7 @@
                      :dateofinstitution [[v/required :message "Field is required"]]
                      :nameofpo [[v/required :message "Field is required"]]
                      :dateofdecision [[v/required :message "Field is required"]]
-                      :title [[v/required :message "Field is required"]]
+                     :title [[v/required :message "Field is required"]]
                      :khasranumber [[v/required :message "Field is required"]]
                      ;; :area [[v/required :message "Field is required"]]
                      :khatakhatuninumber [[v/required :message "Field is required"]]
@@ -573,14 +573,12 @@
        [add-check-input-element :senddate "Send Date" data-set focus]
        ]
       [:div.box-footer
-       [:div.col-sm-12.col-md-offset-5 
+       [:div.col-sm-12.col-md-offset-5
         [button-tool-bar
-         [button {:bs-style "success" :on-click save-function} "Save"] 
+         [button {:bs-style "success" :on-click save-function} "Save"]
          (when (nil? (:id @data-set)) [button {:bs-style "info" :on-click #((reset! data-set {:isactive true})
                                                                             (reset-mut-combo-boxes))} "Refresh"])
-         [button {:bs-style "danger" :on-click form-cancel } "Cancel"]         
-         ]
-        ]
+         [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]]
        ;;[:span (str @data-set)]
        ]]]]])
 
@@ -646,12 +644,12 @@
        [upd-check-input-element data-set focus]
        ]
       [:div.box-footer
-       [:div.col-sm-8.col-md-offset-5 
+       [:div.col-sm-12.col-md-offset-5 
         [button-tool-bar
-         [button {:bs-style "success" :on-click save-function } "Save"]]
-        [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]
+         [button {:bs-style "success" :on-click save-function } "Save"]
+         [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]
        ;;[:span (str @data-set)]
-       ]]]]])
+       ]]]]]])
 
 
 (defn map-mutation-data [mut]
@@ -1254,30 +1252,29 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          (when (is-admin-or-super-admin)[:th " "])
+          (when (is-admin-or-super-admin)[:th " "])
           [:th "S.No"]
           [:th "Sub Division Name"]
           [:th "Name of the Village"]
           ;; [:th "Tehsil"]
           [:th "Year"]
           [:th "Rack Number"]
-          [:th "Description"]
-          (when (is-admin-or-super-admin)[:th " "])
-          (when (is-admin-or-super-admin)[:th " "])]]
+          [:th "Description"]]]
         [:tbody
          (doall (for [mt revenues]
                   ^{:key (.-id mt)} [:tr
+
+                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                                  :on-click  #(revenue-update(.-id mt))} "Update"]])
+                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger" :on-click #(revenue-delete(.-id mt))} "Delete"]])
                                      [:td (.-serialnumber mt)]
                                      [:td (.-subdivisionname mt)]
                                      [:td (.-villagename mt)]
                                      ;; [:td (.-tehsil mt)]
                                      [:td (.-year mt)]
                                      [:td (.-racknumber mt)]
-                                     [:td (.-description mt)]
-                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                              :on-click  #(revenue-update(.-id mt))
-                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
-                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(revenue-delete(.-id mt))
-                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                                     [:td (.-description mt)]]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -1474,6 +1471,8 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          (when (is-admin-or-super-admin)[:th " "])
+          (when (is-admin-or-super-admin)[:th " "])
           [:th "S.No"]
           [:th "Name of the Village"]
           [:th "Sub Division Name"]
@@ -1481,24 +1480,21 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          (when (is-admin-or-super-admin)[:th " "]) 
-          (when (is-admin-or-super-admin)[:th " "]) 
           ]]
         [:tbody
          (doall (for [mt khasragirdwanis]
                   ^{:key (.-id mt)} [:tr
+
+                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                                  :on-click  #(khasragirdwani-update(.-id mt))} "Update"]])
+                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger" :on-click #(khasragirdwani-delete(.-id mt))} "Delete"]])
                                      [:td (.-serialnumber mt)]
                                      [:td (.-villagename mt)]
                                      [:td (.-subdivisionname mt)]
                                      [:td (.-tehsil mt)]
                                      [:td (.-year mt)]
                                      [:td (.-racknumber mt)]
-                                     [:td (.-description mt)]
-                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                              :on-click  #(khasragirdwani-update(.-id mt))
-                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
-                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(khasragirdwani-delete(.-id mt))
-                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                                     [:td (.-description mt)]]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -2172,14 +2168,23 @@
                      ;; :receiveddate [[v/required :message "Field is required"]]
                      )))
 
+(defn misc-input-element [id ttype data-set placeholder in-focus bool]
+  [:input.form-control {:id id
+                        :type ttype
+                        :value (@data-set id)
+                        :placeholder placeholder
+                        :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                        :on-blur  #(reset! in-focus "on")
+                        :disabled bool
+                        }])
 
 
-(defn misc-input-row [id label ttype data-set focus]
+(defn misc-input-row [id label ttype data-set focus bool]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [input-element id ttype data-set label input-focus]]
+       [:div.col-sm-6 [misc-input-element id ttype data-set label input-focus bool]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (misc-form-validator @data-set))
                           [:div]
@@ -2191,7 +2196,7 @@
 (defn misc-form-cancel [event]
   (secretary/dispatch! "/misc"))
 
-(defn misc-template [doc-name data-set focus save-function]
+(defn misc-template [doc-name data-set focus save-function bool]
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
@@ -2199,12 +2204,12 @@
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
-       [misc-input-row :filenumber "File Numbar" "text" data-set focus]
-       [misc-input-row :subject "Subject" "text" data-set focus]
-       [misc-input-row :title "Title" "text" data-set focus]
-       [misc-input-row :remarks "Remarks" "text" data-set focus]
-       [misc-input-row :dispatcheddate "Dispatched Date" "date" data-set focus]
-       [misc-input-row :receiveddate "Recevied Date" "date" data-set focus]
+       [misc-input-row :filenumber "File Numbar" "text" data-set focus bool]
+       [misc-input-row :subject "Subject" "text" data-set focus bool]
+       [misc-input-row :title "Title" "text" data-set focus bool]
+       [misc-input-row :remarks "Remarks" "text" data-set focus bool]
+       [misc-input-row :dispatcheddate "Dispatched Date" "date" data-set focus bool]
+       [misc-input-row :receiveddate "Recevied Date" "date" data-set focus false]
        [:div.box-footer
         [:button.btn.btn-default {:on-click misc-form-cancel} "Cancel"]
         [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
@@ -2230,7 +2235,7 @@
            "Misc Add Form"
            add-data
            focus
-           #(misc-add-form-onclick add-data focus)])))
+           #(misc-add-form-onclick add-data focus) false])))
 
 (defn misc-update-template [id dmt]
   (let [update-data (r/atom {:id (int id)
@@ -2242,12 +2247,18 @@
                              :receiveddate (.-receiveddate dmt)
                              })
         focus (r/atom nil)]
-    (fn [] [misc-template
-           "Misc Update Form"
-           update-data
-           focus
-           #(misc-update-form-onclick update-data focus)])))
-
+    (fn []
+      (if (is-admin-or-super-admin)
+        [misc-template
+         "Misc Update Form"
+         update-data
+         focus
+         #(misc-update-form-onclick update-data focus) false]
+        [misc-template
+         "Misc Update Form"
+         update-data
+         focus
+         #(misc-update-form-onclick update-data focus) true]))))
 
 
 
