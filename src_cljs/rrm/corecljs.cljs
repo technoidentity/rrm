@@ -1696,6 +1696,8 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          (when (is-admin-or-super-admin)[:th " "]) 
+          (when (is-admin-or-super-admin)[:th " "])
           [:th "S.No"]
           [:th "Name of the Village"]
           [:th "Sub Division Name"]
@@ -1703,12 +1705,14 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          (when (is-admin-or-super-admin)[:th " "]) 
-          (when (is-admin-or-super-admin)[:th " "])
-          ]]
+         ]]
         [:tbody
          (doall (for [mt masavis]
                   ^{:key (.-id mt)} [:tr
+                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                                  :on-click  #(masavi-update(.-id mt))} "Update"]])
+                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
+                                                                                   :on-click #(masavi-delete(.-id mt))} "Delete"]])
                                      [:td (.-serialnumber mt)]
                                      [:td (.-villagename mt)]
                                      [:td (.-subdivisionname mt)]
@@ -1716,11 +1720,7 @@
                                      [:td (.-year mt)]
                                      [:td (.-racknumber mt)]
                                      [:td (.-description mt)]
-                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                              :on-click  #(masavi-update(.-id mt))
-                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
-                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(masavi-delete(.-id mt))
-                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                                     ]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 
@@ -1912,6 +1912,8 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          (when (is-admin-or-super-admin)[:th " "]) 
+          (when (is-admin-or-super-admin)[:th " "]) 
           [:th "S.No"]
           [:th "Name of the Village"]
           [:th "Sub Division Name"]
@@ -1919,12 +1921,15 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          (when (is-admin-or-super-admin)[:th " "]) 
-          (when (is-admin-or-super-admin)[:th " "]) 
+          
           ]]
         [:tbody
          (doall (for [mt consolidations]
                   ^{:key (.-id mt)} [:tr
+                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                                  :on-click  #(consolidation-update(.-id mt))} "Update"]]) 
+                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
+                                                                                   :on-click #(consolidation-delete(.-id mt))} "Delete"]])
                                      [:td (.-serialnumber mt)]
                                      [:td (.-villagename mt)]
                                      [:td (.-subdivisionname mt)]
@@ -1932,11 +1937,7 @@
                                      [:td (.-year mt)]
                                      [:td (.-racknumber mt)]
                                      [:td (.-description mt)]
-                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                              :on-click  #(consolidation-update(.-id mt))
-                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
-                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(consolidation-delete(.-id mt))
-                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                                  ]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 (defroute consolidation-list "/consolidation" []
@@ -2108,7 +2109,6 @@
 
 (defn fieldbook-add [event]
   (secretary/dispatch! "/fieldbook/add"))
-
 (defn render-fieldbook [fieldbooks]
   [:div
    [:div {:class "box"}
@@ -2127,6 +2127,8 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           [:th "S.No"]
           [:th "Name of the Village"]
           [:th "Sub Division Name"]
@@ -2134,12 +2136,14 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          (when (is-admin-or-super-admin) [:th " "])
-          (when (is-admin-or-super-admin) [:th " "])
           ]]
         [:tbody
          (doall(for [mt fieldbooks]
                  ^{:key (.-id mt)} [:tr
+                                    (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                             :on-click  #(fieldbook-update(.-id mt))} "Update"]])
+                                    (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
+                                                                                  :on-click #(fieldbook-delete(.-id mt))} "Delete"]])
                                     [:td (.-serialnumber mt)]
                                     [:td (.-villagename mt)]
                                     [:td (.-subdivisionname mt)]
@@ -2147,12 +2151,9 @@
                                     [:td (.-year mt)]
                                     [:td (.-racknumber mt)]
                                     [:td (.-description mt)]
-                                    (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                             :on-click  #(fieldbook-update(.-id mt))
-                                                                             :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
-                                    (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(fieldbook-delete(.-id mt))
-                                                                              :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                                   ]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+
 
 
 (defroute fieldbook-list "/fieldbook" []
@@ -2320,31 +2321,29 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          [:th ""]
+          (when (is-admin-or-super-admin) [:th " "])
           [:th "Fille Number"]
           [:th "Subject"]
           [:th "Title"]
           [:th "Remarks"]
           [:th "Dispatched Date"]
           [:th "Received Date"]
-          [:th ""]
-          (when (is-admin-or-super-admin) [:th " "])
-          ]]
+           ]]
         [:tbody
          (doall (for [mt miscs]
                   ^{:key (.-id mt)} [:tr
+                                     [:td [button {:bs-style "success"
+                                               :on-click  #(misc-update(.-id mt))} "Update"]] 
+                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
+                                                                                   :on-click #(misc-delete(.-id mt))} "Delete"]])
                                      [:td (.-filenumber mt)]
                                      [:td (.-subject mt)]
                                      [:td (.-title mt)]
                                      [:td (.-remarks mt)]
                                      [:td (.-dispatcheddate mt)]
-                                     [:td (.-receiveddate mt)]
-                                     [:td [:a {:href "javascript:;"
-                                               :on-click  #(misc-update(.-id mt))
-                                               :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]] 
-                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(misc-delete(.-id mt))
-                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                                     [:td (.-receiveddate mt)]]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
-
 
 (defroute misc-list "/misc" []
   (if (nil? (get-value! :user)) (set-page! [login])
@@ -2592,6 +2591,8 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           [:th "S.No"]
           [:th "Sub Division Name"]
           [:th "Date of Institution"]
@@ -2603,12 +2604,14 @@
           [:th "Rack NUmber"]
           [:th "Starting Year"]
           [:th "Ending Year"]
-          (when (is-admin-or-super-admin) [:th " "])
-          (when (is-admin-or-super-admin) [:th " "])
-          ]]
+         ]]
         [:tbody
          (doall (for [mt o2registers]
                   ^{:key (.-id mt)} [:tr
+                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                                  :on-click  #(o2register-update(.-id mt))} "Update"]]) 
+                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
+                                                                                   :on-click #(o2register-delete(.-id mt))} "Delete"]])
                                      [:td (.-serialnumber mt)]
                                      [:td (.-subdivisionname mt)]
                                      [:td (.-dateofinstitution mt)]
@@ -2620,11 +2623,7 @@
                                      [:td (.-racknumber mt)]
                                      [:td (.-startingyear mt)]
                                      [:td (.-endingyear mt)]
-                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                              :on-click  #(o2register-update(.-id mt))
-                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
-                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(o2register-delete(.-id mt))
-                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                ]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
 
 (defroute o2register-list "/o2register" []
@@ -2822,6 +2821,8 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           [:th "Sub Division Name"]
           [:th "Khata Khatuni Number"]
           [:th "Number and Date of Order"]
@@ -2829,12 +2830,15 @@
           [:th "Area"]
           [:th "Revenue of Share of Plots Transfered"]
           [:th "Name and Description of the Persons Removed"]
-          (when (is-admin-or-super-admin) [:th " "])
-          (when (is-admin-or-super-admin) [:th " "])
+         
           ]]
         [:tbody
          (doall (for [mt o4registers]
                   ^{:key (.-id mt)} [:tr
+                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                                  :on-click  #(o4register-update(.-id mt))} "Update"]]) 
+                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
+                                                                                   :on-click #(o4register-delete(.-id mt))} "Delete"]])
                                      [:td (.-subdivisionname mt)]
                                      [:td (.-khatakhatuninumber mt)]
                                      [:td (.-numberanddateoforder mt)]
@@ -2842,12 +2846,10 @@
                                      [:td (.-area mt)]
                                      [:td (.-revenuerentofshareofplotstransferred mt)]
                                      [:td (.-nameanddescriptionofthepersonsremoved mt)]
-                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                              :on-click  #(o4register-update(.-id mt))
-                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]) 
-                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(o4register-delete(.-id mt))
-                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                                      ]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+
+
 
 
 (defroute o4register-list "/o4register" []
@@ -3060,30 +3062,32 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           [:th "Sub Divison Name"]
           [:th "Year"]
           [:th  "Mehsil Number"]
           [:th "Date of Orederlevy"]
           [:th "Village Name"]
           [:th "name of Person Whom Recovery is Made"]
-          (when (is-admin-or-super-admin) [:th " "])
-          (when (is-admin-or-super-admin) [:th " "])
+         
           ]]
         [:tbody
          (doall (for [mt o6registers]
                   ^{:key (.-id mt)} [:tr
+                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                                  :on-click  #(o6register-update(.-id mt))} "Update"]])
+                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
+                                                                                   :on-click #(o6register-delete(.-id mt))}"Delete"]])
                                      [:td (.-subdivisionname mt)]
                                      [:td (.-year mt)]
                                      [:td (.-mehsilnumber mt)]
                                      [:td (.-dateoforderlevy mt)]
                                      [:td (.-villagename mt)]
                                      [:td (.-nameofpersonwhomrecoveryismade mt)]
-                                     (when (is-admin-or-super-admin)[:td [:a {:href "javascript:;"
-                                                                              :on-click  #(o6register-update(.-id mt))
-                                                                              :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
-                                     (when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(o6register-delete(.-id mt))
-                                                                               :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}]])]))]]
+                                      ]))]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+
 
 
 
