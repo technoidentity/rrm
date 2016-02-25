@@ -872,14 +872,15 @@
      [:option {:value i}])])
 
 (defn render-mutations [mutations]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:div.page-header [:h3 "List of Mutations"]]]
-    [:div.col-md-12
+      [:h3.box-title "Search for Mutation Records"]]
+    [:div.box-body
      [:div.form-group
       [:div.row
-       [:div.col-sm-2 "Mutation Number"
+       [:div.col-sm-2
+        [:label "Mutation Number"]
         [:input.form-control {:id "mutationnumber"
                               :list "combo1"
                               :type "text"
@@ -890,56 +891,64 @@
 
      [:div.form-group
       [:div.row
-       [:div {:style {:float "left" :width "48%"}} [:hr]]
-       [:span "OR"]
-       [:div {:style {:float "right" :width "48%"}} [:hr]]
-       ]]
+       [:span {:style {:float "right" :width "50%"}} [:b "OR"]]
+       [:hr]]]
 
      [:div.form-group
       [:div.row
-       [:div.col-sm-2 "District Name"
+       [:div.col-sm-2
+        [:label "District Name"]
         [src-dist-sel-tag]]
-       [:div.col-sm-2 "Sub Division Name"
+       [:div.col-sm-2
+        [:label"Sub Division Name"]
         [src-sub-sel-tag]]
-       [:div.col-sm-2 "Village Name"
+       [:div.col-sm-2
+        [:label "Village Name"]
         [src-vill-sel-tag]]
-       [:div.col-sm-2 "O2 Number"
+       [:div.col-sm-2
+        [:label "O2 Number"]
         [:input.form-control {:id "so2number"
                               :type "text"
                               :placeholder "O2 Number"}]]
-       [:div.col-sm-2 "O4 Number"
+       [:div.col-sm-2
+        [:label "O4 Number"]
         [:input.form-control {:id "so4number"
                               :type "text"
                               :placeholder "O4 Number"}]]
-       [:div.col-sm-2 "O6 Number"
+       [:div.col-sm-2
+        [:label "O6 Number"]
         [:input.form-control {:id "so6number"
                               :type "text"
-                              :placeholder "O6 Number"}]]
-       ]]
-
+                              :placeholder "O6 Number"}]]]]
      [:div.form-group
       [:div.row
-       [:div.col-sm-2 "Name of the First Party"
+       [:div.col-sm-2
+        [:label "Name of the First Party"]
         [:input.form-control {:id "snameofthefirstparty"
                               :type "text"
                               :placeholder "Name of the First Party"}]]
-       [:div.col-sm-2 "Name of the Second Party"
+       [:div.col-sm-2
+        [:label "Name of the Second Party"]
         [:input.form-control {:id "snameofthesecondparty"
                               :type "text"
                               :placeholder "Name of the Second Party"}]]
-       [:div.col-sm-2 "Name of P.O"
+       [:div.col-sm-2
+        [:label "Name of P.O"]
         [:input.form-control {:id "svillagename"
                               :list "combo"
                               :placeholder "Name of P.O"}[datalist]]]
-       [:div.col-sm-2 "Title"
+       [:div.col-sm-2
+        [:label "Title"]
         [:input.form-control {:id "stitle"
                               :type "text"
                               :placeholder "Title"}]]
-       [:div.col-sm-2 "Khasra Number"
+       [:div.col-sm-2
+        [:label "Khasra Number"]
         [:input.form-control {:id "skhasranumber"
                               :type "text"
                               :placeholder "Khasra Number"} ]]
-       [:div.col-sm-2 "Khata khatuni Number"
+       [:div.col-sm-2
+        [:label "Khata khatuni Number"]
         [:input.form-control {:id "skhatakhatuninumber"
                               :type "text"
                               :placeholder "Khata Khatuni Number"}]]]]
@@ -951,14 +960,18 @@
          [button {:bs-style "primary" :on-click search } "Search"]
          [button {:bs-style "primary"  :on-click add} "Add New"]
          [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]
-        ]]]]
+        ]]]]]
 
+   [:div.box
+    [:div.box-header
+     [:h3.box-title "List of Mutations"]]
     [:div {:class "box-body table-responsive"}
-     [:table {:class "table table-bordered table-striped dataTable"}
+     [:table {:class "table table-bordered table-striped"
+              :style {:width: "100%"}}
       [:thead
-       [:tr
+       [:tr ;; {:style {:background-color "#f2d284"}}
         (when (is-admin-or-super-admin) [:th ""])
-        (when (is-admin-or-super-admin) [:th " "])
+        (when (is-admin-or-super-admin) [:th ""])
         [:th "Mutation Number"]
         [:th "Name of the First Party"]
         [:th "Name of the Second Party"]
@@ -979,9 +992,9 @@
       [:tbody
        (doall (for [mt mutations]
                 ^{:key (.-id mt)} [:tr
-                                   ;;(when (is-admin-or-super-admin)[:td [:a {:href "javascript:;" :on-click  #(click-update (.-id mt))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]])
+                                   (when (and  (.-senddate mt) (not (.-receiveddate mt)))
+                                     {:style {:background-color "#f6be9f"}})
                                    (when (is-admin-or-super-admin) [:td  [button {:bs-style "success"  :on-click  #(click-update (.-id mt))} "Update"]])
-                                   ;;(when (is-admin-or-super-admin)[:td  [:a {:href "javascript:;" :on-click #(delete(.-id mt))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ])
                                    (when (is-admin-or-super-admin) [:td  [button {:bs-style "danger"  :on-click  #(delete (.-id mt))} "Delete"]])
                                    [:td (.-mutationnumber (.-numbers mt))]
                                    [:td (.-nameofthefirstparty mt)]
@@ -999,10 +1012,8 @@
                                    [:td (.-racknumber (.-numbers mt))]
                                    [:td (.-senddate mt)]
                                    [:td (.-receiveddate mt)]
-                                   ]))]]
-     [:div{:class "col-xs-6 col-centered col-max"} ]]
-    [:div{:class "col-xs-6 col-centered col-max"} ] [shared-state 0]
-    ]])
+                                   ]))]]]
+    [:div{:class "col-xs-6 col-centered col-max"}] [shared-state 0]]])
 
 
 (defroute mutations-list "/mutations" []
@@ -1160,8 +1171,8 @@
        [:div.box-footer
         [:div.col-sm-8.col-md-offset-5 
          [button-tool-bar
-          [button {:bs-style "default" :on-click revenue-form-cancel } "Cancel"]
-          [button {:bs-style "info" :on-click save-function} "Save"]]]
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click revenue-form-cancel } "Cancel"]]]
         ]]]]]])
 
 
@@ -1375,8 +1386,11 @@
        [khasragirdwani-input-row :racknumber "Rack Number" "text" data-set focus]
        [khasragirdwani-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click khasragirdwani-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click khasragirdwani-form-cancel } "Cancel"]]]
+        ]]]]]])
 
 
 (defn khasragirdwani-add-form-onclick [data-set focus]
@@ -1597,8 +1611,10 @@
        [masavi-input-row :racknumber "Rack Number" "text" data-set focus]
        [masavi-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click masavi-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click masavi-form-cancel } "Cancel"]]]]]]]]])
 
 
 (defn masavi-add-form-onclick [data-set focus]
@@ -1815,8 +1831,11 @@
        [consolidation-input-row :racknumber "Rack Number" "text" data-set focus]
        [consolidation-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click consolidation-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click consolidation-form-cancel } "Cancel"]]]
+        ]]]]]])
 
 
 (defn consolidation-add-form-onclick [data-set focus]
@@ -1921,7 +1940,6 @@
           [:th "Year"]
           [:th "Rack Number"]
           [:th "Description"]
-          
           ]]
         [:tbody
          (doall (for [mt consolidations]
@@ -2027,8 +2045,10 @@
        [fieldbook-input-row :racknumber "Rack Number" "text" data-set focus]
        [fieldbook-input-row :description "Description" "text" data-set focus]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click fieldbook-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click fieldbook-form-cancel } "Cancel"]]] ]]]]]])
 
 
 (defn fieldbook-add-form-onclick [data-set focus]
@@ -2222,8 +2242,10 @@
        [misc-input-row :dispatcheddate "Dispatched Date" "date" data-set focus bool]
        [misc-input-row :receiveddate "Recevied Date" "date" data-set focus false]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click misc-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click misc-form-cancel } "Cancel"]]] ]]]]]])
 
 (defn misc-add-form-onclick [data-set focus]
   (if (= nil (misc-form-validator @data-set))
@@ -2301,8 +2323,6 @@
                                                     (=(.-id obj) (.parseInt js/window id))) (get-value! :miscs)))])))]
     (http-get-auth (str serverhost "villages") onres)))
 
-
-
 (defn render-misc [miscs]
   [:div
    [:div {:class "box"}
@@ -2310,14 +2330,14 @@
      [:h3 "List of Misc Records"]]
     [:div.row
      [:div.col-md-12
-      (when (is-admin-or-super-admin)[:div.form-group
-                                      [:input {:type "button" :value "Add"
-                                               :class "btn btn-primary" :on-click misc-add}]
-                                      ;; [:input {:id "getall" :type "button" :value "Refresh"
-                                      ;;          :class "btn btn-primary" :on-click get-all-click}]
-                                      ])
+      (when (is-admin-or-super-admin)
+        [:div.form-group
+         [:input {:type "button" :value "Add"
+                  :class "btn btn-primary" :on-click misc-add}]
+         ;; [:input {:id "getall" :type "button" :value "Refresh"
+         ;;          :class "btn btn-primary" :on-click get-all-click}]
+         ])
       [:div {:class "box-body"}
-
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
@@ -2476,8 +2496,11 @@
        [o2register-input-int-row :startingyear "Starting Year" "text" data-set focus]
        [o2register-input-int-row :endingyear "Ending Year" "text" data-set focus]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click o2register-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click o2register-form-cancel } "Cancel"]]]
+        ]]]]]])
 
 
 (defn o2register-add-form-onclick [data-set focus]
@@ -2723,8 +2746,10 @@
        [o4register-input-row :revenuerentofshareofplotstransferred "Revenue Rent of Share of Plots Transfered" "text" data-set focus]
        [o4register-input-row :nameanddescriptionofthepersonsremoved "Name and Description of the Persons Removed" "text" data-set focus]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click o4register-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click o4register-form-cancel } "Cancel"]]] ]]]]]])
 
 
 (defn o4register-add-form-onclick [data-set focus]
@@ -2830,7 +2855,6 @@
           [:th "Area"]
           [:th "Revenue of Share of Plots Transfered"]
           [:th "Name and Description of the Persons Removed"]
-         
           ]]
         [:tbody
          (doall (for [mt o4registers]
@@ -2955,8 +2979,11 @@
        [o6register-input-select "Village Name" data-set focus ]
        [o6register-input-row :nameofpersonwhomrecoveryismade "Name of Person Whom Recovery is Made" "text" data-set focus]
        [:div.box-footer
-        [:button.btn.btn-default {:on-click o6register-form-cancel} "Cancel"]
-        [:button.btn.btn-info.pull-right {:on-click save-function} "Save"]]]]]]])
+        [:div.col-sm-8.col-md-offset-5 
+         [button-tool-bar
+          [button {:bs-style "success" :on-click save-function} "Save"]
+          [button {:bs-style "danger" :on-click o6register-form-cancel } "Cancel"]]]
+        ]]]]]])
 
 
 (defn o6register-add-form-onclick [data-set focus]

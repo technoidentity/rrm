@@ -219,11 +219,11 @@
      [:option {:value i}])])
 
 (defn render-mutations [mutations]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:div.page-header [:h3 "List of Mutations"]]]
-    [:div.col-md-12
+     [:h3.box-title "Search for Mutation Records"]]
+    [:div.box-body
      [:div.form-group
       [:div.row
        [:div.col-sm-2 "Mutation Number"
@@ -237,69 +237,81 @@
 
      [:div.form-group
       [:div.row
-       [:div {:style {:float "left" :width "48%"}} [:hr]]
-       [:span "OR"]
-       [:div {:style {:float "right" :width "48%"}} [:hr]]
-       ]]
+       [:span {:style {:float "right" :width "50%"}} [:b "OR"]]
+       [:hr]]]
 
      [:div.form-group
       [:div.row
-       [:div.col-sm-2 "District Name"
+       [:div.col-sm-2
+        [:label "District Name"]
         [src-dist-sel-tag]]
-       [:div.col-sm-2 "Sub Division Name"
+       [:div.col-sm-2
+        [:label"Sub Division Name"]
         [src-sub-sel-tag]]
-       [:div.col-sm-2 "Village Name"
+       [:div.col-sm-2
+        [:label "Village Name"]
         [src-vill-sel-tag]]
-       [:div.col-sm-2 "O2 Number"
+       [:div.col-sm-2
+        [:label "O2 Number"]
         [:input.form-control {:id "so2number"
                               :type "text"
                               :placeholder "O2 Number"}]]
-       [:div.col-sm-2 "O4 Number"
+       [:div.col-sm-2
+        [:label "O4 Number"]
         [:input.form-control {:id "so4number"
                               :type "text"
                               :placeholder "O4 Number"}]]
-       [:div.col-sm-2 "O6 Number"
+       [:div.col-sm-2
+        [:label "O6 Number"]
         [:input.form-control {:id "so6number"
                               :type "text"
-                              :placeholder "O6 Number"}]]
-       ]]
-
+                              :placeholder "O6 Number"}]]]]
      [:div.form-group
       [:div.row
-       [:div.col-sm-2 "Name of the First Party"
+       [:div.col-sm-2
+        [:label "Name of the First Party"]
         [:input.form-control {:id "snameofthefirstparty"
                               :type "text"
                               :placeholder "Name of the First Party"}]]
-       [:div.col-sm-2 "Name of the Second Party"
+       [:div.col-sm-2
+        [:label "Name of the Second Party"]
         [:input.form-control {:id "snameofthesecondparty"
                               :type "text"
                               :placeholder "Name of the Second Party"}]]
-       [:div.col-sm-2 "Name of P.O"
+       [:div.col-sm-2
+        [:label "Name of P.O"]
         [:input.form-control {:id "svillagename"
                               :list "combo1"
                               :placeholder "Name of P.O"}[datalist1]]]
-       [:div.col-sm-2 "Title"
+       [:div.col-sm-2
+        [:label "Title"]
         [:input.form-control {:id "stitle"
                               :type "text"
                               :placeholder "Title"}]]
-       [:div.col-sm-2 "Khasra Number"
+       [:div.col-sm-2
+        [:label "Khasra Number"]
         [:input.form-control {:id "skhasranumber"
                               :type "text"
                               :placeholder "Khasra Number"} ]]
-       [:div.col-sm-2 "Khata khatuni Number"
+       [:div.col-sm-2
+        [:label "Khata khatuni Number"]
         [:input.form-control {:id "skhatakhatuninumber"
                               :type "text"
                               :placeholder "Khata Khatuni Number"}]]]]
-     [:hr]
      [:div.form-group
       [:div.row
-       [:div.col-sm-8.col-md-offset-5
-        [button-tool-bar
-         [button {:bs-style "primary" :on-click search } "Search"]
-         ]]]]]
+       [:div.col-sm-6
+        [button {:bs-style "primary" :on-click search } "Search"]]
+       [:div.col-sm-6.col-md-offset-5
+        [:h3 {:style  {:color "red"}} (str (:message @citizen-storage))]]]]
+     ]]
 
+   [:div.box
+    [:div.box-header
+     [:h3.box-title "List of Mutations"]]
     [:div {:class "box-body table-responsive"}
-     [:table {:class "table table-bordered table-striped dataTable"}
+     [:table {:class "table table-bordered table-striped"
+              :style {:width: "100%"}}
       [:thead
        [:tr
         [:th "Mutation Number"]
@@ -322,6 +334,8 @@
       [:tbody
        (doall (for [mt mutations]
                 ^{:key (.-id mt)} [:tr
+                                   (when  (.-senddate mt)
+                                     {:style {:background-color "#DAFDCF"}})
                                    [:td (.-mutationnumber (.-numbers mt))]
                                    [:td (.-nameofthefirstparty mt)]
                                    [:td (.-nameofthesecondparty mt)]
@@ -338,12 +352,8 @@
                                    [:td (.-racknumber (.-numbers mt))]
                                    [:td (.-senddate mt)]
                                    [:td (.-receiveddate mt)]
-                                   ]))]]
-     [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]
-     [:div [:b [:h2 {:style  {:color "red"}} (str (:message @citizen-storage))]]]]]])
-
-
-
+                                   ]))]]]
+    [:div{:class "col-xs-6 col-centered col-max"}] [shared-state 0]]])
 
 (defn main []
   (let [onres (fn [json] ((set-key-value :districts (getdata json))
