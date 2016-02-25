@@ -400,12 +400,22 @@
                      ;; :remarks [[v/required :message "Field is required"]]
                      )))
 
-(defn form-input-element [id label ttype data-set focus]
+(defn mutation-input-element [id ttype data-set placeholder in-focus bool]
+  [:input.form-control {:id id
+                        :type ttype
+                        :value (@data-set id)
+                        :placeholder placeholder
+                        :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                        :on-blur  #(reset! in-focus "on")
+                        :disabled bool
+                        }])
+
+(defn form-input-element [id label ttype data-set focus bool]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [input-element id ttype data-set label input-focus]]
+       [:div.col-sm-6 [mutation-input-element id ttype data-set label input-focus bool]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (form-validator @data-set))
                           [:div]
@@ -518,7 +528,7 @@
                         :disabled bool
                         }])
 
-(defn add-check-input-element [id label data-set focus]
+(defn add-check-input-element [id label data-set focus bool]
   (let [check (r/atom true)]
     (fn []
       [:div
@@ -536,7 +546,7 @@
            [:label.col-sm-3.control-label label]
            [:div.col-sm-6 [date-input id data-set label false]]
            [:div.col-sm-3 [:div]]]
-          [form-input-element :remarks "Remarks" "text" data-set focus]
+          [form-input-element :remarks "Remarks" "text" data-set focus bool]
           ])])))
 
 (defn reset-mut-combo-boxes []
@@ -545,7 +555,7 @@
   (set-key-value :villages []))
 
 
-(defn add-mutation-template [doc-name data-set focus save-function]
+(defn add-mutation-template [doc-name data-set focus save-function bool]
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
@@ -553,24 +563,24 @@
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
-       [form-input-element :mutationnumber "Mutation Number" "text" data-set focus]
-       [form-input-element :nameofthefirstparty "Name of the First Party" "text" data-set focus ]
-       [form-input-element :nameofthesecondparty "Name of the Second Party" "text" data-set focus]
-       [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus]
-       [form-input-combo   :nameofpo "Name of PO" data-set focus]
-       [form-input-element :dateofdecision "Date of Decision" "date" data-set focus]
-       [form-input-element :title "Title" "text" data-set focus]
-       [form-input-element :khasranumber "Khasra Number" "text" data-set focus]
-       [form-input-element :area "Area" "text" data-set focus]
-       [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
+       [form-input-element :mutationnumber "Mutation Number" "text" data-set focus false]
+       [form-input-element :nameofthefirstparty "Name of the First Party" "text" data-set focus false]
+       [form-input-element :nameofthesecondparty "Name of the Second Party" "text" data-set focus false]
+       [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus false]
+       [form-input-combo   :nameofpo "Name of PO" data-set focus ]
+       [form-input-element :dateofdecision "Date of Decision" "date" data-set focus false]
+       [form-input-element :title "Title" "text" data-set focus false]
+       [form-input-element :khasranumber "Khasra Number" "text" data-set focus false]
+       [form-input-element :area "Area" "text" data-set focus false]
+       [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus false]
        [form-dist-sel "District" :districtid (:districts @storage) data-set]
        [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set]
        [form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
-       [form-input-element :o2number "O2 Number" "text" data-set focus]
-       [form-input-element :o4number "O4 Number" "text" data-set focus]
-       [form-input-element :o6number "O6 Number" "text" data-set focus]
-       [form-input-element :racknumber "Rack Number" "text" data-set focus]
-       [add-check-input-element :senddate "Send Date" data-set focus]
+       [form-input-element :o2number "O2 Number" "text" data-set focus false]
+       [form-input-element :o4number "O4 Number" "text" data-set focus false ]
+       [form-input-element :o6number "O6 Number" "text" data-set focus false]
+       [form-input-element :racknumber "Rack Number" "text" data-set focus false]
+       [add-check-input-element :senddate "Send Date" data-set focus bool]
        ]
       [:div.box-footer
        [:div.col-sm-12.col-md-offset-5
@@ -582,7 +592,7 @@
        ;;[:span (str @data-set)]
        ]]]]])
 
-(defn upd-check-input-element [data-set focus]
+(defn upd-check-input-element [data-set focus bool ]
   (let [check (r/atom true)]
     (fn []
       [:div
@@ -596,7 +606,7 @@
            [:label.col-sm-3.control-label "Received Date"]
            [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
            [:div.col-sm-3 [:div]]]
-          [form-input-element :remarks "Remarks" "text" data-set focus]]
+          [form-input-element :remarks "Remarks" "text" data-set focus bool]]
          [:div
           [:div.form-group
            [:div.col-sm-3
@@ -612,11 +622,11 @@
               [:label.col-sm-3.control-label "Received Date"]
               [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
               [:div.col-sm-3 [:div]]]])
-          [form-input-element :remarks "Remarks" "text" data-set focus]])])))
+          [form-input-element :remarks "Remarks" "text" data-set focus bool]])])))
 
 
 
-(defn update-mutation-template [doc-name data-set focus save-function]
+(defn update-mutation-template [doc-name data-set focus save-function bool]
   [:div.container
    [:div.col-md-12
     [:div.box.box-info
@@ -624,24 +634,24 @@
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
-       [form-input-element :mutationnumber "Mutation Number" "text" data-set focus]
-       [form-input-element :nameofthefirstparty "Name of the First Party" "text" data-set focus ]
-       [form-input-element :nameofthesecondparty "Name of the Second Party" "text" data-set focus]
-       [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus]
-       [form-input-combo   :nameofpo "Name of PO" data-set focus]
-       [form-input-element :dateofdecision "Date of Decision" "date" data-set focus]
-       [form-input-element :title "Title" "text" data-set focus]
-       [form-input-element :khasranumber "Khasra Number" "text" data-set focus]
-       [form-input-element :area "Area" "text" data-set focus]
-       [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus]
+       [form-input-element :mutationnumber "Mutation Number" "text" data-set focus false]
+       [form-input-element :nameofthefirstparty "Name of the First Party" "text" data-set focus false ]
+       [form-input-element :nameofthesecondparty "Name of the Second Party" "text" data-set focus false]
+       [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus false]
+       [form-input-combo   :nameofpo "Name of PO" data-set focus ]
+       [form-input-element :dateofdecision "Date of Decision" "date" data-set focus false]
+       [form-input-element :title "Title" "text" data-set focus false]
+       [form-input-element :khasranumber "Khasra Number" "text" data-set focus false]
+       [form-input-element :area "Area" "text" data-set focus false]
+       [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus false]
        [form-dist-sel "District" :districtid (:districts @storage) data-set]
        [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set]
        [form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
-       [form-input-element :o2number "O2 Number" "text" data-set focus]
-       [form-input-element :o4number "O4 Number" "text" data-set focus]
-       [form-input-element :o6number "O6 Number" "text" data-set focus]
-       [form-input-element :racknumber "Rack Number" "text" data-set focus]
-       [upd-check-input-element data-set focus]
+       [form-input-element :o2number "O2 Number" "text" data-set focus false]
+       [form-input-element :o4number "O4 Number" "text" data-set focus false]
+       [form-input-element :o6number "O6 Number" "text" data-set focus false]
+       [form-input-element :racknumber "Rack Number" "text" data-set focus false]
+       [upd-check-input-element data-set focus bool]
        ]
       [:div.box-footer
        [:div.col-sm-12.col-md-offset-5 
@@ -689,7 +699,7 @@
 (defn mutation-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
-    (fn [] [add-mutation-template "Mutation Add Form" add-data focus #(add-form-onclick add-data focus)])))
+    (fn [] [add-mutation-template "Mutation Add Form" add-data focus #(add-form-onclick add-data focus) false])))
 
 
 (defn mutation-update-template [id dmt]
@@ -723,7 +733,7 @@
            "Mutation Update Form"
            update-data
            focus
-           #(update-form-onclick update-data focus)]))
+           #(update-form-onclick update-data focus) false]))
       (if (= nil (.-senddate dmt))
         (let [update-data (r/atom {:id (int id)
                                    :mutationnumber (.-mutationnumber (.-numbers dmt))
@@ -753,7 +763,7 @@
              "Mutation Update Form"
              update-data
              focus
-             #(update-form-onclick update-data focus)]))
+             #(update-form-onclick update-data focus) false]))
         (let [update-data (r/atom {:id (int id)
                                    :mutationnumber (.-mutationnumber (.-numbers dmt))
                                    :nameofthefirstparty (.-nameofthefirstparty dmt)
@@ -782,7 +792,7 @@
              "Mutation Update Form"
              update-data
              focus
-             #(update-form-onclick update-data focus)]))))))
+             #(update-form-onclick update-data focus) true]))))))
   
 (defn click-update[id]
   (secretary/dispatch! (str "/mutations/update/" id)))
