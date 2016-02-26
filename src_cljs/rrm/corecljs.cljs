@@ -47,7 +47,6 @@
 (def button-tool-bar (r/adapt-react-class (aget js/ReactBootstrap "ButtonToolbar")))
 (def button (r/adapt-react-class (aget js/ReactBootstrap "Button")))
 
-
 (defn get-value! [k]
   (k @storage))
 
@@ -76,9 +75,8 @@
   (xhr/send url callback "DELETE" "" (structs/Map. (clj->js {:Content-Type "application/json" :rrm-auth (get-value! :token)}))))
 
 
-;; =====================================================================================================
+;; ----------------------------------------------------------------------------------
 ;; login-form with validations
-;; =====================================================================================================
 
 (defn set-login-page []
   (do
@@ -161,9 +159,9 @@
          [submit-button my-data focus ]]]])))
 
 
-;; ====================================================================================================
+
 ;; end of login-form
-;; ====================================================================================================
+;; ------------------------------------------------------------------
 
 (defn is-authenticated? []
   (not (nil? (get-value! :user))))
@@ -210,7 +208,6 @@
                                         (tt/within? (tt/interval date1 (tt/plus date2 (tt/days 1)))
                                                     (c/from-string (.-date %)))) data)))
 
-
 (defn get-search-url [vid mutno fp
                       sp nop kkn
                       o2n tit kn
@@ -237,7 +234,6 @@
                     (clj->js (keep-indexed
                               #(if (and (>= %1 pag-start) (<= %1 pag-end)) %2) data))))))
 
-
 (defn url-format [url title]
   [:a {:href url :class "btn btn-primary  glyphicon glyphicon-plus"} title])
 
@@ -254,7 +250,6 @@
           :else (filter-by-str-dates data lstr date1 date2))))
 
 (def pager-elem (r/adapt-react-class (aget js/ReactBootstrap "Pagination")))
-
 
 (declare render-mutations)
 
@@ -279,8 +274,7 @@
                                   (dec (get-value! :current-page))
                                   vid mn fp sp po
                                   kknum so2 st knum
-                                  so4 so6)
-                   onres)))
+                                  so4 so6) onres)))
 
 (defn pager [value total-rec]
   [pager-elem {:bsSize "large"
@@ -296,7 +290,6 @@
                            (do
                              (set-key-value :current-page (.-eventKey s2))
                              (set-pager-data (get-value! :current-page))))}])
-
 
 (defn shared-state [totalRec]
   (let [val (r/atom 1)
@@ -363,9 +356,6 @@
     (http-get-auth (str (get-search-url
                          vid mn fp sp po
                          kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))
-
-;; (defn input [label type id]
-;;   (row label [:input.form-control {:type type :id id :on-change on-change}]))
 
 ;; --------------------------------------------------------------------------
 ;; mutation form

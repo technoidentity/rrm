@@ -335,7 +335,7 @@
        (doall (for [mt mutations]
                 ^{:key (.-id mt)} [:tr
                                    (when  (.-senddate mt)
-                                     {:style {:background-color "#DAFDCF"}})
+                                     {:style {:background-color  "#fbcfd1"}})
                                    [:td (.-mutationnumber (.-numbers mt))]
                                    [:td (.-nameofthefirstparty mt)]
                                    [:td (.-nameofthesecondparty mt)]
