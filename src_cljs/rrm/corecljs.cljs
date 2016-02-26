@@ -109,7 +109,6 @@
                                 [v/string  :message "Enter valid password"]])))
 
 (defn input-element [id ttype data-set placeholder in-focus]
-  ;;(js/console.log @data-set)
   [:input.form-control {:id id
                         :type ttype
                         :value (@data-set id)
@@ -118,23 +117,17 @@
                         :on-blur  #(reset! in-focus "on")
                         }])
 
-
-(defn login-input-element [id label span-class ttype data-set placeholder focus]
+(defn login-input [id span-class ttype data-set label focus]
   (let [input-focus (r/atom nil)]
     (fn []
-      [:div.form-group
-       [:div.row
-        [:div.col-sm-12
-         [:label label]
-         [:div.input-group.col-sm-10
-          [:span {:class span-class}]
-          [input-element id ttype data-set placeholder input-focus]]
-         (if (or @input-focus @focus)
-           (if (= nil (login-validator @data-set))
-             [:div]
-             [:div {:style  {:color "red"}} [:b (str (first ((login-validator @data-set) id)))]])
-           [:div])]]])))
-
+      [:div.form-group.has-feedback
+        [input-element id ttype data-set label input-focus]
+        [:span {:class span-class}]
+        (if (or @input-focus @focus)
+          (if (= nil (login-validator @data-set))
+            [:div]
+            [:div {:style  {:color "red"}} [:b (str (first ((login-validator @data-set) id)))]])
+          [:div])])))
 
 (defn submit-login [data-set focus]
   (if (= nil (login-validator @data-set))
@@ -145,28 +138,28 @@
                       ;;(js/console.log (.-_2 (getdata json)))
                       (reset-login-page)
                       (secretary/dispatch! "/"))))]
-      (http-post (str serverhost "login")
-                 onresp (.serialize (Serializer.) (clj->js @data-set ))))
+      (http-post (str serverhost "login") onresp (.serialize (Serializer.) (clj->js @data-set ))))
     (reset! focus "on")))
 
 (defn submit-button [data-set focus]
-  [:div.form-group
-   [:div.col-md-6
-    [button-tool-bar
-     [button {:bs-style "primary" :on-click #(submit-login data-set focus)} "Submit" ]]]])
+  [:div.row
+   [:div.col-md-4
+    [:button {:class "btn btn-primary btn-block btn-flat" :on-click #(submit-login data-set focus)} "Sign In" ]]])
 
 (defn login []
   (let [my-data (r/atom  {})
         focus (r/atom nil)]
     (fn []
-      [:div.container
-       [:div.panel.panel-primary.modal-dialog
-        [:div.panel-heading
-         [:h2 "Log-in"]]
-        [:div.panel-body
-         [login-input-element :username "Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "Email" focus]
-         [login-input-element :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "password" focus]
+      [:div.hold-transition.login-page {:style {:width "100%" :height "100%"}}
+       [:div.login-box
+        [:div.login-logo
+         [:b "Log-in"]]
+        [:div.login-box-body
+         [:p.login-box-msg "Sign in to start your session"]
+         [login-input :username "glyphicon glyphicon-envelope form-control-feedback" "email" my-data "Email" focus]
+         [login-input :password "glyphicon glyphicon-lock form-control-feedback" "password" my-data "password" focus]
          [submit-button my-data focus ]]]])))
+
 
 ;; ====================================================================================================
 ;; end of login-form
@@ -311,8 +304,6 @@
     [:div.row
      [pager val trec]]))
 
-
-
 (defn cancel [event]
   (secretary/dispatch! "/"))
 
@@ -379,7 +370,6 @@
 ;; --------------------------------------------------------------------------
 ;; mutation form
 
-
 (defn form-validator [data-set]
   (first (b/validate data-set
                      :mutationnumber [[v/required :message "Field is required"]]
@@ -387,7 +377,8 @@
                      :nameofthesecondparty [[v/required :message "Field is required"]]
                      :dateofinstitution [[v/required :message "Field is required"]]
                      :nameofpo [[v/required :message "Field is required"]]
-                     :dateofdecision [[v/required :message "Field is required"]]
+                     :dateofdecision [[v/required :message "Field is required"]
+                                      [v/datetime :message "Please enter valid date"]]
                      :title [[v/required :message "Field is required"]]
                      :khasranumber [[v/required :message "Field is required"]]
                      ;; :area [[v/required :message "Field is required"]]
@@ -406,7 +397,7 @@
                         :value (@data-set id)
                         :placeholder placeholder
                         :on-change #(swap! data-set assoc id (-> % .-target .-value))
-                        :on-blur  #(reset! in-focus "on")
+                        ;; :on-blur  #(reset! in-focus "on")
                         :disabled bool
                         }])
 
@@ -436,7 +427,7 @@
                         :value (@data-set id)
                         :placeholder placeholder
                         :on-change #(swap! data-set assoc id (-> % .-target .-value))
-                        :on-blur  #(reset! in-focus "on")
+                        ;; :on-blur  #(reset! in-focus "on")
                         } [datalist ]])
 
 (defn form-input-combo [id label data-set focus]
@@ -966,10 +957,9 @@
     [:div.box-header
      [:h3.box-title "List of Mutations"]]
     [:div {:class "box-body table-responsive"}
-     [:table {:class "table table-bordered table-striped"
-              :style {:width: "100%"}}
+     [:table {:class "table table-bordered table-striped"}
       [:thead
-       [:tr ;; {:style {:background-color "#f2d284"}}
+       [:tr 
         (when (is-admin-or-super-admin) [:th ""])
         (when (is-admin-or-super-admin) [:th ""])
         [:th "Mutation Number"]
@@ -993,7 +983,7 @@
        (doall (for [mt mutations]
                 ^{:key (.-id mt)} [:tr
                                    (when (and  (.-senddate mt) (not (.-receiveddate mt)))
-                                     {:style {:background-color "#f6be9f"}})
+                                     {:style {:background-color "#fbcfd1"}})
                                    (when (is-admin-or-super-admin) [:td  [button {:bs-style "success"  :on-click  #(click-update (.-id mt))} "Update"]])
                                    (when (is-admin-or-super-admin) [:td  [button {:bs-style "danger"  :on-click  #(delete (.-id mt))} "Delete"]])
                                    [:td (.-mutationnumber (.-numbers mt))]
@@ -1034,30 +1024,12 @@
 
 (defroute documents-path1 "/mutations/update/:id" [id]
   (let [upd-data (first (filter (fn[obj] (=(.-id obj) (.parseInt js/window id))) (get-value! :mutations)))
-
-        ;; sub-id  (r/atom nil)
-        ;; dist-id  (r/atom nil)
-
         vill-res (fn[json](set-key-value :villages (getdata json)))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))
         dist-res (fn[json] ((set-key-value :districts (getdata json))
                            (set-page! [mutation-update-template id upd-data])))]
     (do
-      ;; (http-get (str serverhost "villages/" (.-villageid upd-data))
-      ;;           (fn [json]
-      ;;             (let [dt (getdata json)]
-      ;;               (reset! sub-id dt ))))
-
-      ;; (http-get (str  serverhost "subdivisions/" (.-subdivisionid sub-id))
-      ;;             (fn [json]
-      ;;               (reset! dist-id (getdata json))))
-
-      ;; (js/console.log upd-data)
-      ;; (js/console.log sub-id)
-      ;; (js/console.log )
       (http-get-auth (str serverhost "districts") dist-res)
-      ;; (http-get (str serverhost "districts" (.-districtid dist-id) "subdivisions") sub-res)
-      ;; (http-get (str serverhost "subdivisions" (.-subdivionid sub-id) "villages") vill-res)
       (http-get-auth (str serverhost "villages") vill-res)
       (http-get-auth (str serverhost "subdivisions") sub-res))))
 
@@ -1255,6 +1227,7 @@
 (defn revenue-add [event]
   (secretary/dispatch! "/revenue/add"))
 
+
 (defn render-revenue [revenues]
   [:div
    [:div {:class "box"}
@@ -1264,13 +1237,10 @@
      [:div.col-md-12
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click revenue-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
+                :class "btn btn-primary" :on-click revenue-add}]]
       [:div {:class "box-body"}
 
-       [:table {:class "table table-bordered table-striped dataTable"}
+       [:table {:class "table table-bordered table-striped dataTable" :border "2" :width "100px" :style {:table-layout "fixed"}}
         [:thead
          [:tr
           (when (is-admin-or-super-admin)[:th " "])
