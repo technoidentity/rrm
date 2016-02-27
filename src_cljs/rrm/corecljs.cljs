@@ -951,7 +951,7 @@
       [:div.row
        [:div.col-sm-8.col-md-offset-5 
         [button-tool-bar
-         [button {:bs-style "primary" :on-click search } "Search"]
+         [button {:bs-style "btn btn-primary"  :on-click search } "Search"]
          [button {:bs-style "primary"  :on-click add} "Add New"]
          [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]
         ]]]]]
