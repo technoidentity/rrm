@@ -360,15 +360,28 @@
 ;; --------------------------------------------------------------------------
 ;; mutation form
 
+(defn year-after? [date]
+  (let [year (js/parseInt (re-find #"\d+" date))]
+    (tt/after? (tt/date-time year)  (tt/date-time 1900))))
+
+(defn year-before? [date]
+  (let [year (js/parseInt (re-find #"\d+" date))]
+    (tt/before?  (tt/date-time year) (tt/date-time 9999)))) 
+
 (defn form-validator [data-set]
   (first (b/validate data-set
                      :mutationnumber [[v/required :message "Field is required"]]
                      :nameofthefirstparty [[v/required :message "Field is required"]]
                      :nameofthesecondparty [[v/required :message "Field is required"]]
-                     :dateofinstitution [[v/required :message "Field is required"]]
+                     :dateofinstitution [[v/required :message "Field is required"]
+                                         [year-after? :message "Year must greater than 1900"]
+                                         [year-before? :message "Year must less than 9999"]
+                                         ]
                      :nameofpo [[v/required :message "Field is required"]]
                      :dateofdecision [[v/required :message "Field is required"]
-                                      [v/datetime :message "Please enter valid date"]]
+                                      [year-after? :message "Year must greater than 1900"]
+                                      [year-before? :message "Year must less than 9999"]
+                                      ]
                      :title [[v/required :message "Field is required"]]
                      :khasranumber [[v/required :message "Field is required"]]
                      ;; :area [[v/required :message "Field is required"]]
@@ -570,7 +583,7 @@
          (when (nil? (:id @data-set)) [button {:bs-style "info" :on-click #((reset! data-set {:isactive true})
                                                                             (reset-mut-combo-boxes))} "Refresh"])
          [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]]
-       ;;[:span (str @data-set)]
+       ;; [:span (str @data-set)]
        ]]]]])
 
 (defn upd-check-input-element [data-set focus bool ]
@@ -946,8 +959,9 @@
    [:div.box
     [:div.box-header
      [:h3.box-title "List of Mutations"]]
-    [:div {:class "box-body table-responsive"}
-     [:table {:class "table table-bordered table-striped"}
+    [:div {:class "box-body"}
+     [:div.table-responsive
+     [:table {:class "table table-bordered table-striped dataTable"}
       [:thead
        [:tr 
         (when (is-admin-or-super-admin) [:th ""])
@@ -993,7 +1007,7 @@
                                    [:td (.-senddate mt)]
                                    [:td (.-receiveddate mt)]
                                    ]))]]]
-    [:div{:class "col-xs-6 col-centered col-max"}] [shared-state 0]]])
+     [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 
 (defroute mutations-list "/mutations" []
@@ -1031,7 +1045,9 @@
 (defn revenue-form-validator [data-set]
   (first (b/validate data-set
                      :serialnumber [[v/required :message "Field is required Must be number"]]
-                     :year [[v/required :message "Field is required"]]
+                     :year [[v/required :message "Field is required"]
+                            [year-after? :message "Year must greater than 1900"]
+                            [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
                      :description [[v/required :message "Field is required"]])))
 
@@ -1218,19 +1234,18 @@
   (secretary/dispatch! "/revenue/add"))
 
 
+
 (defn render-revenue [revenues]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of Revenue Records"]]
-    [:div.row
-     [:div.col-md-12
+     [:h3.box-title "List of Revenue Records"]]
+    [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
                 :class "btn btn-primary" :on-click revenue-add}]]
-      [:div {:class "box-body"}
-
-       [:table {:class "table table-bordered table-striped dataTable" :border "2" :width "100px" :style {:table-layout "fixed"}}
+      [:div.table-responsive
+       [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
           (when (is-admin-or-super-admin)[:th " "])
@@ -1244,19 +1259,23 @@
           [:th "Description"]]]
         [:tbody
          (doall (for [mt revenues]
-                  ^{:key (.-id mt)} [:tr
-
-                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
-                                                                                  :on-click  #(revenue-update(.-id mt))} "Update"]])
-                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger" :on-click #(revenue-delete(.-id mt))} "Delete"]])
-                                     [:td (.-serialnumber mt)]
-                                     [:td (.-subdivisionname mt)]
-                                     [:td (.-villagename mt)]
-                                     ;; [:td (.-tehsil mt)]
-                                     [:td (.-year mt)]
-                                     [:td (.-racknumber mt)]
-                                     [:td (.-description mt)]]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+                  ^{:key (.-id mt)}
+                  [:tr
+                   (when (is-admin-or-super-admin)
+                     [:td [button {:bs-style "success"
+                                   :on-click  #(revenue-update(.-id mt))} "Update"]])
+                   (when (is-admin-or-super-admin)
+                     [:td  [button {:bs-style "danger"
+                                    :on-click #(revenue-delete(.-id mt))} "Delete"]])
+                   [:td (.-serialnumber mt)]
+                   [:td (.-subdivisionname mt)]
+                   [:td (.-villagename mt)]
+                   ;; [:td (.-tehsil mt)]
+                   [:td (.-year mt)]
+                   [:td (.-racknumber mt)]
+                   [:td (.-description mt)]
+                   ]))]]]
+       [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 
 (defroute revenue-list "/revenue" []
@@ -1278,7 +1297,9 @@
                      :serialnumber [[v/required :message "Field is required Must be number"]]
                      :subdivisionname [[v/required :message "Field is required"]]
                      :tehsil [[v/required :message "Field is required"]]
-                     :year [[v/required :message "Field is required"]]
+                     :year [[v/required :message "Field is required"]
+                            [year-after? :message "Year must greater than 1900"]
+                            [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
                      :description [[v/required :message "Field is required"]])))
 
@@ -1438,20 +1459,15 @@
   (secretary/dispatch! "/khasragirdwani/add"))
 
 (defn render-khasragirdwani [khasragirdwanis]
-  [:div
+  [:div.col-sm-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of Khasragirdwani Records"]]
-    [:div.row
-     [:div.col-sm-12
+     [:h3.box-title "List of Khasragirdwani Records"]]
+    [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click khasragirdwani-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
-      [:div {:class "box-body"}
-
+                :class "btn btn-primary" :on-click khasragirdwani-add}]]
+      [:div.table-responsive
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
@@ -1467,21 +1483,23 @@
           ]]
         [:tbody
          (doall (for [mt khasragirdwanis]
-                  ^{:key (.-id mt)} [:tr
-
-                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
-                                                                                  :on-click  #(khasragirdwani-update(.-id mt))} "Update"]])
-                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger" :on-click #(khasragirdwani-delete(.-id mt))} "Delete"]])
-                                     [:td (.-serialnumber mt)]
-                                     [:td (.-villagename mt)]
-                                     [:td (.-subdivisionname mt)]
-                                     [:td (.-tehsil mt)]
-                                     [:td (.-year mt)]
-                                     [:td (.-racknumber mt)]
-                                     [:td (.-description mt)]]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
-
-
+                  ^{:key (.-id mt)}
+                  [:tr
+                   (when (is-admin-or-super-admin)
+                     [:td [button {:bs-style "success"
+                                   :on-click  #(khasragirdwani-update(.-id mt))} "Update"]])
+                   (when (is-admin-or-super-admin)
+                     [:td  [button {:bs-style "danger"
+                                    :on-click #(khasragirdwani-delete(.-id mt))} "Delete"]])
+                   [:td (.-serialnumber mt)]
+                   [:td (.-villagename mt)]
+                   [:td (.-subdivisionname mt)]
+                   [:td (.-tehsil mt)]
+                   [:td (.-year mt)]
+                   [:td (.-racknumber mt)]
+                   [:td (.-description mt)]
+                   ]))]]]
+       [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute khasragirdwani-list "/khasragirdwani" []
   (if (nil? (get-value! :user)) (set-page! [login])
@@ -1502,7 +1520,9 @@
                      :serialnumber [[v/required :message "Field is required Must be number"]]
                      :subdivisionname [[v/required :message "Field is required"]]
                      :tehsil [[v/required :message "Field is required"]]
-                     :year [[v/required :message "Field is required"]]
+                     :year [[v/required :message "Field is required"]
+                            [year-after? :message "Year must greater than 1900"]
+                            [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
                      :description [[v/required :message "Field is required"]])))
 
@@ -1655,24 +1675,19 @@
   (secretary/dispatch! "/masavi/add"))
 
 (defn render-masavi [masavis]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of Masavi Records"]]
-    [:div.row
-     [:div.col-md-12
+     [:h3.box-title "List of Masavi Records"]]
+    [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click masavi-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
-      [:div {:class "box-body"}
-
+                :class "btn btn-primary" :on-click masavi-add}]]
+      [:div.table-responsive
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
-          (when (is-admin-or-super-admin)[:th " "]) 
+          (when (is-admin-or-super-admin)[:th " "])
           (when (is-admin-or-super-admin)[:th " "])
           [:th "S.No"]
           [:th "Name of the Village"]
@@ -1684,21 +1699,23 @@
          ]]
         [:tbody
          (doall (for [mt masavis]
-                  ^{:key (.-id mt)} [:tr
-                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
-                                                                                  :on-click  #(masavi-update(.-id mt))} "Update"]])
-                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
-                                                                                   :on-click #(masavi-delete(.-id mt))} "Delete"]])
-                                     [:td (.-serialnumber mt)]
-                                     [:td (.-villagename mt)]
-                                     [:td (.-subdivisionname mt)]
-                                     [:td (.-tehsil mt)]
-                                     [:td (.-year mt)]
-                                     [:td (.-racknumber mt)]
-                                     [:td (.-description mt)]
-                                     ]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
-
+                  ^{:key (.-id mt)}
+                  [:tr
+                   (when (is-admin-or-super-admin)
+                     [:td [button {:bs-style "success"
+                                   :on-click  #(masavi-update(.-id mt))} "Update"]])
+                   (when (is-admin-or-super-admin)
+                     [:td  [button {:bs-style "danger"
+                                    :on-click #(masavi-delete(.-id mt))} "Delete"]])
+                   [:td (.-serialnumber mt)]
+                   [:td (.-villagename mt)]
+                   [:td (.-subdivisionname mt)]
+                   [:td (.-tehsil mt)]
+                   [:td (.-year mt)]
+                   [:td (.-racknumber mt)]
+                   [:td (.-description mt)]
+                   ]))]]]
+       [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute masavi-list "/masavi" []
   (if (nil? (get-value! :user)) (set-page! [login])
@@ -1719,7 +1736,9 @@
                      :serialnumber [[v/required :message "Field is required Must be number"]]
                      :subdivisionname [[v/required :message "Field is required"]]
                      :tehsil [[v/required :message "Field is required"]]
-                     :year [[v/required :message "Field is required"]]
+                     :year [[v/required :message "Field is required"]
+                            [year-after? :message "Year must greater than 1900"]
+                            [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
                      :description [[v/required :message "Field is required"]])))
 
@@ -1874,49 +1893,47 @@
     (http-get-auth (str serverhost "villages") onres)))
 
 (defn render-consolidation [consolidations]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of Consolidation Records"]]
-    [:div.row
-     [:div.col-md-12
-      [:div.form-group
-       [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click consolidation-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
-      [:div {:class "box-body"}
-
-       [:table {:class "table table-bordered table-striped dataTable"}
-        [:thead
-         [:tr
-          (when (is-admin-or-super-admin)[:th " "]) 
-          (when (is-admin-or-super-admin)[:th " "]) 
-          [:th "S.No"]
-          [:th "Name of the Village"]
-          [:th "Sub Division Name"]
-          [:th "Tehsil"]
-          [:th "Year"]
-          [:th "Rack Number"]
-          [:th "Description"]
-          ]]
-        [:tbody
-         (doall (for [mt consolidations]
-                  ^{:key (.-id mt)} [:tr
-                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
-                                                                                  :on-click  #(consolidation-update(.-id mt))} "Update"]]) 
-                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
-                                                                                   :on-click #(consolidation-delete(.-id mt))} "Delete"]])
-                                     [:td (.-serialnumber mt)]
-                                     [:td (.-villagename mt)]
-                                     [:td (.-subdivisionname mt)]
-                                     [:td (.-tehsil mt)]
-                                     [:td (.-year mt)]
-                                     [:td (.-racknumber mt)]
-                                     [:td (.-description mt)]
-                                  ]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+     [:h3.box-title "List of Consolidation Records"]]
+    [:div.box-body
+     [:div.form-group
+      [:input {:type "button" :value "Add"
+               :class "btn btn-primary" :on-click consolidation-add}]]
+     [:div.table-responsive
+      [:table {:class "table table-bordered table-striped dataTable"}
+       [:thead
+        [:tr
+         (when (is-admin-or-super-admin)[:th " "])
+         (when (is-admin-or-super-admin)[:th " "])
+         [:th "S.No"]
+         [:th "Name of the Village"]
+         [:th "Sub Division Name"]
+         [:th "Tehsil"]
+         [:th "Year"]
+         [:th "Rack Number"]
+         [:th "Description"]
+         ]]
+       [:tbody
+        (doall (for [mt consolidations]
+                 ^{:key (.-id mt)}
+                 [:tr
+                  (when (is-admin-or-super-admin)
+                    [:td [button {:bs-style "success"
+                                  :on-click  #(consolidation-update(.-id mt))} "Update"]]) 
+                  (when (is-admin-or-super-admin)
+                    [:td  [button {:bs-style "danger"
+                                   :on-click #(consolidation-delete(.-id mt))} "Delete"]])
+                  [:td (.-serialnumber mt)]
+                  [:td (.-villagename mt)]
+                  [:td (.-subdivisionname mt)]
+                  [:td (.-tehsil mt)]
+                  [:td (.-year mt)]
+                  [:td (.-racknumber mt)]
+                  [:td (.-description mt)]
+                  ]))]]]
+       [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute consolidation-list "/consolidation" []
   (if (nil? (get-value! :user)) (set-page! [login])
@@ -1937,7 +1954,9 @@
                      :serialnumber [[v/required :message "Field is required Must be number"]]
                      :subdivisionname [[v/required :message "Field is required"]]
                      :tehsil [[v/required :message "Field is required"]]
-                     :year [[v/required :message "Field is required"]]
+                     :year [[v/required :message "Field is required"]
+                            [year-after? :message "Year must greater than 1900"]
+                            [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
                      :description [[v/required :message "Field is required"]])))
 
@@ -2089,21 +2108,18 @@
 
 (defn fieldbook-add [event]
   (secretary/dispatch! "/fieldbook/add"))
+
+
 (defn render-fieldbook [fieldbooks]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of Field Book Records"]]
-    [:div.row
-     [:div.col-md-12
+     [:h3.box-title "List of Field Book Records"]]
+    [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click fieldbook-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
-      [:div {:class "box-body"}
-
+                :class "btn btn-primary" :on-click fieldbook-add}]]
+      [:div.table-responsive
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
@@ -2119,20 +2135,23 @@
           ]]
         [:tbody
          (doall(for [mt fieldbooks]
-                 ^{:key (.-id mt)} [:tr
-                                    (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
-                                                                             :on-click  #(fieldbook-update(.-id mt))} "Update"]])
-                                    (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
-                                                                                  :on-click #(fieldbook-delete(.-id mt))} "Delete"]])
-                                    [:td (.-serialnumber mt)]
-                                    [:td (.-villagename mt)]
-                                    [:td (.-subdivisionname mt)]
-                                    [:td (.-tehsil mt)]
-                                    [:td (.-year mt)]
-                                    [:td (.-racknumber mt)]
-                                    [:td (.-description mt)]
-                                   ]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+                 ^{:key (.-id mt)}
+                 [:tr
+                  (when (is-admin-or-super-admin)
+                    [:td [button {:bs-style "success"
+                                  :on-click  #(fieldbook-update(.-id mt))} "Update"]])
+                  (when (is-admin-or-super-admin)
+                    [:td  [button {:bs-style "danger"
+                                   :on-click #(fieldbook-delete(.-id mt))} "Delete"]])
+                  [:td (.-serialnumber mt)]
+                  [:td (.-villagename mt)]
+                  [:td (.-subdivisionname mt)]
+                  [:td (.-tehsil mt)]
+                  [:td (.-year mt)]
+                  [:td (.-racknumber mt)]
+                  [:td (.-description mt)]
+                  ]))]]]
+       [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 
 
@@ -2155,7 +2174,9 @@
                      :subject [[v/required :message "Field is required"]]
                      :title [[v/required :message "Field is required"]]
                      :remarks [[v/required :message "Field is required"]]
-                     :dispatcheddate [[v/required :message "Field is required"]]
+                     :dispatcheddate [[v/required :message "Field is required"]
+                                      [year-after? :message "Year must greater than 1900"]
+                                      [year-before? :message "Year must less than 9999"]]
                      ;; :receiveddate [[v/required :message "Field is required"]]
                      )))
 
@@ -2284,20 +2305,16 @@
     (http-get-auth (str serverhost "villages") onres)))
 
 (defn render-misc [miscs]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of Misc Records"]]
-    [:div.row
-     [:div.col-md-12
-      (when (is-admin-or-super-admin)
-        [:div.form-group
-         [:input {:type "button" :value "Add"
-                  :class "btn btn-primary" :on-click misc-add}]
-         ;; [:input {:id "getall" :type "button" :value "Refresh"
-         ;;          :class "btn btn-primary" :on-click get-all-click}]
-         ])
-      [:div {:class "box-body"}
+     [:h3.box-title "List of Misc Records"]]
+    [:div.box-body
+     (when (is-admin-or-super-admin)
+       [:div.form-group
+        [:input {:type "button" :value "Add"
+                 :class "btn btn-primary" :on-click misc-add}]])
+      [:div.table-responsive
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
@@ -2312,18 +2329,20 @@
            ]]
         [:tbody
          (doall (for [mt miscs]
-                  ^{:key (.-id mt)} [:tr
-                                     [:td [button {:bs-style "success"
-                                               :on-click  #(misc-update(.-id mt))} "Update"]] 
-                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
-                                                                                   :on-click #(misc-delete(.-id mt))} "Delete"]])
-                                     [:td (.-filenumber mt)]
-                                     [:td (.-subject mt)]
-                                     [:td (.-title mt)]
-                                     [:td (.-remarks mt)]
-                                     [:td (.-dispatcheddate mt)]
-                                     [:td (.-receiveddate mt)]]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+                  ^{:key (.-id mt)}
+                  [:tr
+                   [:td [button {:bs-style "success"
+                                 :on-click  #(misc-update(.-id mt))} "Update"]] 
+                   (when (is-admin-or-super-admin)
+                     [:td  [button {:bs-style "danger"
+                                    :on-click #(misc-delete(.-id mt))} "Delete"]])
+                   [:td (.-filenumber mt)]
+                   [:td (.-subject mt)]
+                   [:td (.-title mt)]
+                   [:td (.-remarks mt)]
+                   [:td (.-dispatcheddate mt)]
+                   [:td (.-receiveddate mt)]]))]]]
+       [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute misc-list "/misc" []
   (if (nil? (get-value! :user)) (set-page! [login])
@@ -2338,19 +2357,37 @@
 ;; ---------------------------------------------------------
 ;; o2register-records
 
+
+(defn o2-year-after? [date]
+  (let [year (js/parseInt date)]
+    (tt/after? (tt/date-time year)  (tt/date-time 1900))))
+
+(defn o2-year-before? [date]
+  (let [year (js/parseInt date)]
+    (tt/before?  (tt/date-time year) (tt/date-time 9999))))
+
 (defn o2register-form-validator [data-set]
   (first (b/validate data-set
                      :serialnumber [[v/required :message "Field is required Must be number"]]
                      :subdivisionname [[v/required :message "Field is required"]]
-                     :dateofinstitution [[v/required :message "Field is required"]]
+                     :dateofinstitution [[v/required :message "Field is required"]
+                                         [year-after? :message "Year must greater than 1900"]
+                                         [year-before? :message "Year must less than 9999"]]
                      :sourceofreceipt [[v/required :message "Field is required"]]
                      :nameofthefirstparty [[v/required :message "Field is required"]]
-                     :dateofreceiptfrompanchayat [[v/required :message "Field is required"]]
-                     :dateandgistoffinalorder [[v/required :message "Field is required"]]
+                     :dateofreceiptfrompanchayat [[v/required :message "Field is required"]
+                                                  [year-after? :message "Year must greater than 1900"]
+                                                  [year-before? :message "Year must less than 9999"]]
+                     :dateandgistoffinalorder [[v/required :message "Field is required"]
+                                               [year-after? :message "Year must greater than 1900"]
+                                               [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :startingyear [[v/required :message "Field is required Must be number"]]
-                     :endingyear [[v/required :message "Field is required Must be number"]])))
-
+                     :startingyear [[v/required :message "Field is required Must be number"]
+                                    [o2-year-after? :message "Year must greater than 1900"]
+                                    [o2-year-before? :message "Year must less than 9999"]]
+                     :endingyear [[v/required :message "Field is required Must be number"]
+                                  [o2-year-after? :message "Year must greater than 1900"]
+                                  [o2-year-before? :message "Year must less than 9999"]])))
 
 (defn o2register-input-int-row [id label ttype data-set focus]
   (let [input-focus (r/atom nil)]
@@ -2378,8 +2415,6 @@
                            [:b (str (first ((o2register-form-validator @data-set) id)))]])
                         [:div])]])))
 
-
-
 (defn set-o2-fields [data-set mutdata]
   (do
     (swap! data-set assoc :subdivisionname (.-subdivisionname mutdata))
@@ -2388,7 +2423,6 @@
     (swap! data-set assoc :racknumber (.-nameofthefirstparty mutdata))
     (swap! data-set assoc :mutationid (int (.-id mutdata)))
     (swap! data-set assoc :villagename (.-villagename mutdata))))
-
 
 (defn reset-o2-fields [data-set]
   (do
@@ -2557,57 +2591,53 @@
   (secretary/dispatch! "/o2register/add"))
 
 (defn render-o2register [o2registers]
-  [:div
-   [:div {:class "box"}
-    [:div {:class "box-header"}
-     [:h3 "List of O2 Register Records"]]
-    [:div.row
-     [:div.col-md-12
-      [:div.form-group
-       [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click o2register-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
-      [:div {:class "box-body"}
-
-       [:table {:class "table table-bordered table-striped dataTable"}
-        [:thead
-         [:tr
-          (when (is-admin-or-super-admin) [:th " "])
-          (when (is-admin-or-super-admin) [:th " "])
-          [:th "S.No"]
-          [:th "Sub Division Name"]
-          [:th "Date of Institution"]
-          [:th "Source of Receipt"]
-          [:th "Village Name"]
-          [:th "Name of the First Party"]
-          [:th "Date of Receipt"]
-          [:th "Date of Gist Final Order"]
-          [:th "Rack NUmber"]
-          [:th "Starting Year"]
-          [:th "Ending Year"]
-         ]]
-        [:tbody
-         (doall (for [mt o2registers]
-                  ^{:key (.-id mt)} [:tr
-                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
-                                                                                  :on-click  #(o2register-update(.-id mt))} "Update"]]) 
-                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
-                                                                                   :on-click #(o2register-delete(.-id mt))} "Delete"]])
-                                     [:td (.-serialnumber mt)]
-                                     [:td (.-subdivisionname mt)]
-                                     [:td (.-dateofinstitution mt)]
-                                     [:td (.-sourceofreceipt mt)]
-                                     [:td (.-villagename mt)]
-                                     [:td (.-nameofthefirstparty mt)]
-                                     [:td (.-dateofreceiptfrompanchayat mt)]
-                                     [:td (.-dateandgistoffinalorder mt)]
-                                     [:td (.-racknumber mt)]
-                                     [:td (.-startingyear mt)]
-                                     [:td (.-endingyear mt)]
-                ]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
+  [:div.col-md-12
+   [:div.box
+    [:div.box-header
+     [:h3.box-title "List of O2 Register Records"]]
+      [:div.box-body
+       [:div.form-group
+        [:input {:type "button" :value "Add"
+                 :class "btn btn-primary" :on-click o2register-add}]]
+       [:div.table-responsive
+        [:table {:class "table table-bordered table-striped dataTable"}
+         [:thead
+          [:tr
+           (when (is-admin-or-super-admin) [:th " "])
+           (when (is-admin-or-super-admin) [:th " "])
+           [:th "S.No"]
+           [:th "Sub Division Name"]
+           [:th "Date of Institution"]
+           [:th "Source of Receipt"]
+           [:th "Village Name"]
+           [:th "Name of the First Party"]
+           [:th "Date of Receipt"]
+           [:th "Date of Gist Final Order"]
+           [:th "Rack NUmber"]
+           [:th "Starting Year"]
+           [:th "Ending Year"]
+           ]]
+         [:tbody
+          (doall (for [mt o2registers]
+                   ^{:key (.-id mt)}
+                   [:tr
+                    (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
+                                                                 :on-click  #(o2register-update(.-id mt))} "Update"]]) 
+                    (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
+                                                                  :on-click #(o2register-delete(.-id mt))} "Delete"]])
+                    [:td (.-serialnumber mt)]
+                    [:td (.-subdivisionname mt)]
+                    [:td (.-dateofinstitution mt)]
+                    [:td (.-sourceofreceipt mt)]
+                    [:td (.-villagename mt)]
+                    [:td (.-nameofthefirstparty mt)]
+                    [:td (.-dateofreceiptfrompanchayat mt)]
+                    [:td (.-dateandgistoffinalorder mt)]
+                    [:td (.-racknumber mt)]
+                    [:td (.-startingyear mt)]
+                    [:td (.-endingyear mt)]
+                    ]))]]]
+       [:div.col-sm-6.col-md-offset-5  [shared-state 0]]]]])
 
 (defroute o2register-list "/o2register" []
   (if (nil? (get-value! :user)) (set-page! [login])
@@ -2626,7 +2656,9 @@
   (first (b/validate data-set
                      :subdivisionname [[v/required :message "Field is required"]]
                      :khatakhatuninumber [[v/required :message "Field is required"]]
-                     :numberanddateoforder [[v/required :message "Field is required"]]
+                     :numberanddateoforder [[v/required :message "Field is required"]
+                                            [year-after? :message "Year must greater than 1900"]
+                                            [year-before? :message "Year must less than 9999"]]
                      :khasranumber [[v/required :message "Field is required"]]
                      :area [[v/required :message "Field is required"]]
                      :revenuerentofshareofplotstransferred [[v/required :message "Field is required"]]
@@ -2789,20 +2821,15 @@
 
 
 (defn render-o4register [o4registers]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of O4 Register Records"]]
-    [:div.row
-     [:div.col-md-12
+     [:h3.box-title "List of O4 Register Records"]]
+    [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click o4register-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
-      [:div {:class "box-body"}
-
+                :class "btn btn-primary" :on-click o4register-add}]]
+      [:div.table-responsive
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
@@ -2818,23 +2845,23 @@
           ]]
         [:tbody
          (doall (for [mt o4registers]
-                  ^{:key (.-id mt)} [:tr
-                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
-                                                                                  :on-click  #(o4register-update(.-id mt))} "Update"]]) 
-                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
-                                                                                   :on-click #(o4register-delete(.-id mt))} "Delete"]])
-                                     [:td (.-subdivisionname mt)]
-                                     [:td (.-khatakhatuninumber mt)]
-                                     [:td (.-numberanddateoforder mt)]
-                                     [:td (.-khasranumber mt)]
-                                     [:td (.-area mt)]
-                                     [:td (.-revenuerentofshareofplotstransferred mt)]
-                                     [:td (.-nameanddescriptionofthepersonsremoved mt)]
-                                      ]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
-
-
-
+                  ^{:key (.-id mt)}
+                  [:tr
+                   (when (is-admin-or-super-admin)
+                     [:td [button {:bs-style "success"
+                                   :on-click  #(o4register-update(.-id mt))} "Update"]]) 
+                   (when (is-admin-or-super-admin)
+                     [:td  [button {:bs-style "danger"
+                                    :on-click #(o4register-delete(.-id mt))} "Delete"]])
+                   [:td (.-subdivisionname mt)]
+                   [:td (.-khatakhatuninumber mt)]
+                   [:td (.-numberanddateoforder mt)]
+                   [:td (.-khasranumber mt)]
+                   [:td (.-area mt)]
+                   [:td (.-revenuerentofshareofplotstransferred mt)]
+                   [:td (.-nameanddescriptionofthepersonsremoved mt)]
+                   ]))]]]
+       [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute o4register-list "/o4register" []
   (if (nil? (get-value! :user)) (set-page! [login])
@@ -2853,9 +2880,13 @@
 (defn o6register-form-validator [data-set]
   (first (b/validate data-set
                      :subdivisionname [[v/required :message "Field is required"]]
-                     :year [[v/required :message "Field is required"]]
+                     :year [[v/required :message "Field is required"]
+                            [year-after? :message "Year must greater than 1900"]
+                            [year-before? :message "Year must less than 9999"]]
                      :mehsilnumber [[v/required :message "Field is required"]]
-                     :dateoforderlevy [[v/required :message "Field is required"]]
+                     :dateoforderlevy [[v/required :message "Field is required"]
+                                       [year-after? :message "Year must greater than 1900"]
+                                       [year-before? :message "Year must less than 9999"]]
                      :nameofpersonwhomrecoveryismade [[v/required :message "Field is required"]])))
 
 
@@ -3032,20 +3063,15 @@
   (secretary/dispatch! "/o6register/add"))
 
 (defn render-o6register [o6registers]
-  [:div
+  [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3 "List of O6 Register Records"]]
-    [:div.row
-     [:div.col-md-12
+     [:h3.box-title "List of O6 Register Records"]]
+    [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click o6register-add}]
-       ;; [:input {:id "getall" :type "button" :value "Refresh"
-       ;;          :class "btn btn-primary" :on-click get-all-click}]
-       ]
-      [:div {:class "box-body"}
-
+                :class "btn btn-primary" :on-click o6register-add}]]
+      [:div.table-responsive
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
@@ -3053,30 +3079,29 @@
           (when (is-admin-or-super-admin) [:th " "])
           [:th "Sub Divison Name"]
           [:th "Year"]
-          [:th  "Mehsil Number"]
+          [:th "Mehsil Number"]
           [:th "Date of Orederlevy"]
           [:th "Village Name"]
-          [:th "name of Person Whom Recovery is Made"]
-         
+          [:th "Name of Person Whom Recovery is Made"]
           ]]
         [:tbody
          (doall (for [mt o6registers]
-                  ^{:key (.-id mt)} [:tr
-                                     (when (is-admin-or-super-admin)[:td [button {:bs-style "success"
-                                                                                  :on-click  #(o6register-update(.-id mt))} "Update"]])
-                                     (when (is-admin-or-super-admin)[:td  [button {:bs-style "danger"
-                                                                                   :on-click #(o6register-delete(.-id mt))}"Delete"]])
-                                     [:td (.-subdivisionname mt)]
-                                     [:td (.-year mt)]
-                                     [:td (.-mehsilnumber mt)]
-                                     [:td (.-dateoforderlevy mt)]
-                                     [:td (.-villagename mt)]
-                                     [:td (.-nameofpersonwhomrecoveryismade mt)]
-                                      ]))]]
-       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]]]]]])
-
-
-
+                  ^{:key (.-id mt)}
+                  [:tr
+                   (when (is-admin-or-super-admin)
+                     [:td [button {:bs-style "success"
+                                   :on-click  #(o6register-update(.-id mt))} "Update"]])
+                   (when (is-admin-or-super-admin)
+                     [:td  [button {:bs-style "danger"
+                                    :on-click #(o6register-delete(.-id mt))}"Delete"]])
+                   [:td (.-subdivisionname mt)]
+                   [:td (.-year mt)]
+                   [:td (.-mehsilnumber mt)]
+                   [:td (.-dateoforderlevy mt)]
+                   [:td (.-villagename mt)]
+                   [:td (.-nameofpersonwhomrecoveryismade mt)]
+                   ]))]]]
+       [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute o6register-list "/o6register" []
   (if (nil? (get-value! :user)) (set-page! [login])
