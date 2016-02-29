@@ -284,10 +284,10 @@
                               :list "combo1"
                               :placeholder "Name of P.O"}[datalist1]]]
        [:div.col-sm-2
-        [:label "Title"]
+        [:label "Nature of Case"]
         [:input.form-control {:id "stitle"
                               :type "text"
-                              :placeholder "Title"}]]
+                              :placeholder "Nature of Case"}]]
        [:div.col-sm-2
         [:label "Khasra Number"]
         [:input.form-control {:id "skhasranumber"
@@ -325,17 +325,15 @@
         [:th "O2 Number"]
         [:th "O4 Number"]
         [:th "O6 Number"]
+        [:th "Nature of Case"]
         [:th "Khasra Number"]
         [:th "Khata khatuni Number"]
-        [:th "Rack Number"]
-        [:th "Sent Date"]
-        [:th "Received Date "]
         ]]
       [:tbody
        (doall (for [mt mutations]
                 ^{:key (.-id mt)} [:tr
-                                   (when  (.-senddate mt)
-                                     {:style {:background-color  "#fbcfd1"}})
+                                   (when (and  (.-senddate mt) (not (.-receiveddate mt)))
+                                     {:style {:background-color "#fbcfd1"}})
                                    [:td (.-mutationnumber (.-numbers mt))]
                                    [:td (.-nameofthefirstparty mt)]
                                    [:td (.-nameofthesecondparty mt)]
@@ -347,11 +345,9 @@
                                    [:td (.-o2number (.-numbers  mt))]
                                    [:td (.-o4number (.-numbers mt))]
                                    [:td (.-o6number (.-numbers mt))]
+                                   [:td (.-title mt)]
                                    [:td (.-khasranumber (.-numbers mt))]
                                    [:td (.-khatakhatuninumber (.-numbers mt))]
-                                   [:td (.-racknumber (.-numbers mt))]
-                                   [:td (.-senddate mt)]
-                                   [:td (.-receiveddate mt)]
                                    ]))]]]
     [:div{:class "col-xs-6 col-centered col-max"}] [shared-state 0]]])
 
