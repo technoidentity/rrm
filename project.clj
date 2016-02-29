@@ -24,7 +24,8 @@
                  [crypto-password "0.1.3"]
                  [cljsjs/react-bootstrap "0.28.1-0"
                   :exclusions [org.webjars.bower/jquery]]
-                 [com.andrewmcveigh/cljs-time "0.4.0"]]
+                 [com.andrewmcveigh/cljs-time "0.4.0"]
+                 [hodgepodge "0.1.3"]]
 
   :plugins [[lein-ring "0.8.13"]
             [migratus-lein "0.1.7"]

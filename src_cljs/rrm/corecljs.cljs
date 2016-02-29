@@ -15,7 +15,14 @@
             [goog.dom :as dom]
             [goog.history.EventType :as EventType]
             [bouncer.core :as b]
-            [bouncer.validators :as v])
+            [bouncer.validators :as v]
+            [hodgepodge.core :refer [local-storage
+                                     get-item
+                                     set-item
+                                     remove-item
+                                     clear!
+                                     length]]
+            [cljs.reader :as reader])
   (:import goog.History
            goog.json.Serializer
            goog.date.Date
@@ -73,6 +80,10 @@
 
 (defn http-delete [url callback]
   (xhr/send url callback "DELETE" "" (structs/Map. (clj->js {:Content-Type "application/json" :rrm-auth (get-value! :token)}))))
+
+(defn set-url [url]
+  (let [ls (reader/read-string (js->clj (get-item local-storage "session")))]
+    (set-item local-storage "session" (assoc ls :current-url url))))
 
 
 ;; ----------------------------------------------------------------------------------
@@ -133,7 +144,9 @@
                    (if (= (get-status json) 200)
                      ((set-key-value :user (.-_2 (getdata json)))
                       (set-key-value :token (.-_1 (getdata json)))
-                      ;;(js/console.log (.-_2 (getdata json)))
+                      (set-item local-storage "session" {:current-url "/" :user-info
+                                                         {:token (get-value! :token)
+                                                          :user (get-value! :user)}})
                       (reset-login-page)
                       (secretary/dispatch! "/"))))]
       (http-post (str serverhost "login") onresp (.serialize (Serializer.) (clj->js @data-set ))))
@@ -177,6 +190,7 @@
                      currnt-page)))
 (defn sign-out []
   (set-key-value :user nil)
+  (remove-item local-storage "session")
   (set-page! [login])
   (set-login-page))
 
@@ -951,7 +965,7 @@
       [:div.row
        [:div.col-sm-8.col-md-offset-5 
         [button-tool-bar
-         [button {:bs-style "btn btn-primary"  :on-click search } "Search"]
+         [button {:bs-style "primary"  :on-click search } "Search"]
          [button {:bs-style "primary"  :on-click add} "Add New"]
          [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]
         ]]]]]
@@ -1024,6 +1038,7 @@
   (let [onres (fn[json](
                        (set-key-value :districts (getdata json))
                        (set-page! [mutation-add-template])))]
+    (set-url "/mutations/add")
     (http-get-auth (str serverhost "districts") onres)))
 
 (defroute documents-path1 "/mutations/update/:id" [id]
@@ -1285,6 +1300,7 @@
                       (set-key-value :revenues (.-data dt))
                       (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
                       (set-page!  [render-revenue (get-value! :revenues)])))]
+        (set-url "/revenue")
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "revenuerecords?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -3141,12 +3157,23 @@
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
 
+(defn get-current-route! []
+  (let [curl (get-item local-storage "session")]
+    (cond (nil? curl) (do (set-login-page)
+                          (str "/"))
+          :else (do
+                  ;(js/console.log (:user-info (reader/read-string (js->clj curl))))
+                  (swap! storage assoc :user (:user (:user-info (reader/read-string (js->clj curl)))))
+                  (swap! storage assoc :token  (:token (:user-info (reader/read-string (js->clj curl)))))
+                  (reset-login-page)
+                  (:current-url (reader/read-string (js->clj curl)))))))
 
 (defn main
   []
   (secretary/set-config! :prefix "#")
-  (set-login-page)
-  (set-key-value :page-location [login])
+  ;;(set-key-value :page-location [login])
+  (js/console.log (get-current-route!))
+  ;;(secretary/dispatch! (get-current-route!))
   (r/render [page]
             (.getElementById js/document "app1"))
   (let [history (History.)]
