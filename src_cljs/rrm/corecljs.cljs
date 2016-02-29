@@ -3171,9 +3171,7 @@
 (defn main
   []
   (secretary/set-config! :prefix "#")
-  ;;(set-key-value :page-location [login])
-  (js/console.log (get-current-route!))
-  ;;(secretary/dispatch! (get-current-route!))
+  (secretary/dispatch! (get-current-route!))
   (r/render [page]
             (.getElementById js/document "app1"))
   (let [history (History.)]
