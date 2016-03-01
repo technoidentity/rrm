@@ -20,7 +20,7 @@
            goog.date.Date
            goog.array))
 
-(def serverhost "http://rrmapi.herokuapp.com/")
+(def serverhost "http://localhost:9000/")
 
 (defonce citizen-storage (r/atom {:mutations {}
                                   :current-page 1
@@ -190,7 +190,7 @@
         sp (.-value (.getElementById js/document "snameofthesecondparty"))
         onres (fn [json] (let [data (getdata json)]
                            (if (empty? (.-data data))
-                             (do 
+                             (do
                                (set-key-value :message "No Records to Display")
                                (set-key-value :mutations nil)
                                (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
@@ -231,7 +231,7 @@
                               :list "combo"
                               :type "text"
                               :placeholder  "Enter search by Mutation Number"
-                              :on-change #(get-data (-> % .-target .-value)) 
+                              :on-change #(get-data (-> % .-target .-value))
                               }]
         [datalist (:mutationnumbers @citizen-storage)]]]]
 
@@ -325,15 +325,17 @@
         [:th "O2 Number"]
         [:th "O4 Number"]
         [:th "O6 Number"]
-        [:th "Nature of Case"]
         [:th "Khasra Number"]
         [:th "Khata khatuni Number"]
+        [:th "Rack Number"]
+        [:th "Sent Date"]
+        [:th "Received Date "]
         ]]
       [:tbody
        (doall (for [mt mutations]
                 ^{:key (.-id mt)} [:tr
-                                   (when (and  (.-senddate mt) (not (.-receiveddate mt)))
-                                     {:style {:background-color "#fbcfd1"}})
+                                   (when   (and  (.-senddate mt) (not (.-receiveddate mt)))
+                                     {:style {:background-color  "#fbcfd1"}})
                                    [:td (.-mutationnumber (.-numbers mt))]
                                    [:td (.-nameofthefirstparty mt)]
                                    [:td (.-nameofthesecondparty mt)]
@@ -345,9 +347,11 @@
                                    [:td (.-o2number (.-numbers  mt))]
                                    [:td (.-o4number (.-numbers mt))]
                                    [:td (.-o6number (.-numbers mt))]
-                                   [:td (.-title mt)]
                                    [:td (.-khasranumber (.-numbers mt))]
                                    [:td (.-khatakhatuninumber (.-numbers mt))]
+                                   [:td (.-racknumber (.-numbers mt))]
+                                   [:td (.-senddate mt)]
+                                   [:td (.-receiveddate mt)]
                                    ]))]]]
     [:div{:class "col-xs-6 col-centered col-max"}] [shared-state 0]]])
 
@@ -358,3 +362,4 @@
     (http-get (str serverhost "districts") onres)))
 
 (main)
+

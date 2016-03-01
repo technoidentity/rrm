@@ -43,7 +43,7 @@
                           :user nil
                           :mutationnumbers nil}))
 
-(def serverhost "http://rrmapi.herokuapp.com/")
+(def serverhost "http://localhost:9000/")
 
 (defn set-key-value [k v]
   (reset! storage (assoc @storage k v)))
@@ -384,29 +384,21 @@
 
 (defn form-validator [data-set]
   (first (b/validate data-set
-                     :mutationnumber [[v/required :message "Field is required"]]
-                     :nameofthefirstparty [[v/required :message "Field is required"]]
-                     :nameofthesecondparty [[v/required :message "Field is required"]]
-                     :dateofinstitution [[v/required :message "Field is required"]
-                                         [year-after? :message "Year must greater than 1900"]
-                                         [year-before? :message "Year must less than 9999"]
-                                         ]
-                     :nameofpo [[v/required :message "Field is required"]]
-                     :dateofdecision [[v/required :message "Field is required"]
-                                      [year-after? :message "Year must greater than 1900"]
-                                      [year-before? :message "Year must less than 9999"]
-                                      ]
-                     :title [[v/required :message "Field is required"]]
-                     :khasranumber [[v/required :message "Field is required"]]
-                     ;; :area [[v/required :message "Field is required"]]
-                     :khatakhatuninumber [[v/required :message "Field is required"]]
-                     ;; :o2number [[v/required :message "Field is required"]]
-                     ;; :o4number [[v/required :message "Field is required"]]
-                     ;; :o6number [[v/required :message "Field is required"]]
-                     :racknumber [[v/required :message "Field is required"]]
-                     ;; :receiveddate [[v/required :message "Field is required"]]
-                     ;; :remarks [[v/required :message "Field is required"]]
-                     )))
+                       :mutationnumber [[v/required :message "Field is required"]]
+                       :nameofthefirstparty [[v/required :message "Field is required"]]
+                       :nameofthesecondparty [[v/required :message "Field is required"]]
+                       :dateofinstitution [[v/required :message "Field is required"]
+                                           [year-after? :message "Year must greater than 1900"]
+                                           [year-before? :message "Year must less than 9999"]]
+                       :nameofpo [[v/required :message "Field is required"]]
+                       :dateofdecision [[v/required :message "Field is required"]
+                                        [year-after? :message "Year must greater than 1900"]
+                                        [year-before? :message "Year must less than 9999"]]
+                       :title [[v/required :message "Field is required"]]
+                       :khasranumber [[v/required :message "Field is required"]]
+                       :khatakhatuninumber [[v/required :message "Field is required"]]
+                       :racknumber [[v/required :message "Field is required"]]
+                       )))
 
 (defn mutation-input-element [id ttype data-set placeholder in-focus bool]
   [:input.form-control {:id id
@@ -525,26 +517,32 @@
 (defn form-cancel [event]
   (secretary/dispatch! "/"))
 
-
-
-(defn date-input [id data-set placeholder bool]
+(defn date-input [id data-set placeholder bool focus-on]
   [:input.form-control {:id id
                         :type "date"
                         :value (@data-set id)
                         :placeholder placeholder
                         :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                        :on-blur #(reset! focus-on "true" )
                         :disabled bool
                         }])
 
+(defn senddate-validator [data-set]
+  (first (b/validate data-set
+                     :senddate [[v/required :message "Field is required"]
+                                [year-after? :message "Year must greater than 1900"]
+                                [year-before? :message "Year must less than 9999"]])))
+
 (defn add-check-input-element [id label data-set focus bool]
-  (let [check (r/atom true)]
+  (let [check (r/atom true)
+        focus-on (r/atom nil)]
     (fn []
       [:div
        [:div.form-group
         [:div.col-sm-3
          [:input {:type "checkbox"
                   :style {:width "17px" :height "17px" :float "right"}
-                  :on-change #(swap! check not)}]] 
+                  :on-change #(swap! check not)}]]
         [:label.col-sm-6 "Out side Record Room"]
         [:div.col-sm-3 [:div]]]
        (if @check
@@ -552,9 +550,14 @@
          [:div
           [:div.form-group
            [:label.col-sm-3.control-label label]
-           [:div.col-sm-6 [date-input id data-set label false]]
-           [:div.col-sm-3 [:div]]]
-          [form-input-element :remarks "Remarks" "text" data-set focus bool]
+           [:div.col-sm-6 [date-input id data-set label false focus-on]]
+           [:div.col-sm-3 (if @focus-on
+                            (if (= nil (senddate-validator @data-set))
+                              [:div]
+                              [:div {:style  {:color "red"}}
+                               [:b (str (first ((senddate-validator @data-set) id)))]])
+                            [:div])]]
+           [form-input-element :remarks "Remarks" "text" data-set focus bool]
           ])])))
 
 (defn reset-mut-combo-boxes []
@@ -577,7 +580,7 @@
        [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus false]
        [form-input-combo   :nameofpo "Name of PO" data-set focus ]
        [form-input-element :dateofdecision "Date of Decision" "date" data-set focus false]
-       [form-input-element :title "Title" "text" data-set focus false]
+       [form-input-element :title "Nature of Case" "text" data-set focus false]
        [form-input-element :khasranumber "Khasra Number" "text" data-set focus false]
        [form-input-element :area "Area" "text" data-set focus false]
        [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus false]
@@ -596,31 +599,50 @@
          [button {:bs-style "success" :on-click save-function} "Save"]
          (when (nil? (:id @data-set)) [button {:bs-style "info" :on-click #((reset! data-set {:isactive true})
                                                                             (reset-mut-combo-boxes))} "Refresh"])
-         [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]]
-       ;; [:span (str @data-set)]
-       ]]]]])
+         [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]]]
+       ;;[:span (str @data-set)]
+       ]]]])
+
+(defn receiveddate-validator [data-set]
+  (first (b/validate data-set
+                     :receiveddate [[v/required :message "Field is required"]
+                                    [year-after? :message "Year must greater than 1900"]
+                                    [year-before? :message "Year must less than 9999"]])))
+
 
 (defn upd-check-input-element [data-set focus bool ]
-  (let [check (r/atom true)]
+  (let [check (r/atom true)
+        focus-on (r/atom nil)
+        focus-on1 (r/atom nil)]
     (fn []
       [:div
        [:div.form-group
         [:label.col-sm-3.control-label "Send Date"]
-        [:div.col-sm-6 [date-input :senddate data-set "Send Date" true]]
-        [:div.col-sm-3 [:div]]]
+        [:div.col-sm-6 [date-input :senddate data-set "Send Date" true focus-on]]
+        [:div.col-sm-3  (if @focus-on
+                          (if (= nil (senddate-validator @data-set))
+                            [:div]
+                            [:div {:style  {:color "red"}}
+                             [:b (str (first ((senddate-validator @data-set) :senddate)))]])
+                          [:div])]]
        (if (:receiveddate @data-set)
          [:div
           [:div.form-group
            [:label.col-sm-3.control-label "Received Date"]
-           [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
-           [:div.col-sm-3 [:div]]]
+           [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false focus-on1]]
+           [:div.col-sm-3   (if @focus-on1
+                              (if (= nil (receiveddate-validator @data-set))
+                                [:div]
+                                [:div {:style  {:color "red"}}
+                                 [:b (str (first ((receiveddate-validator @data-set) :receiveddate)))]])
+                              [:div])]]
           [form-input-element :remarks "Remarks" "text" data-set focus bool]]
          [:div
           [:div.form-group
            [:div.col-sm-3
             [:input {:type "checkbox"
                      :style {:width "17px" :height "17px" :float "right"}
-                     :on-change #(swap! check not)}]] 
+                     :on-change #(swap! check not)}]]
            [:label.col-sm-6 "Check here to enter received date"]
            [:div.col-sm-3 [:div]]]
           (if @check
@@ -628,11 +650,14 @@
             [:div
              [:div.form-group
               [:label.col-sm-3.control-label "Received Date"]
-              [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false]]
-              [:div.col-sm-3 [:div]]]])
+              [:div.col-sm-6 [date-input :receiveddate data-set "Received Date" false focus-on1]]
+              [:div.col-sm-3 (if @focus-on1
+                               (if (= nil (receiveddate-validator @data-set))
+                                 [:div]
+                                 [:div {:style  {:color "red"}}
+                                  [:b (str (first ((receiveddate-validator @data-set) :receiveddate)))]])
+                               [:div])]]])
           [form-input-element :remarks "Remarks" "text" data-set focus bool]])])))
-
-
 
 (defn update-mutation-template [doc-name data-set focus save-function bool]
   [:div.container
@@ -648,7 +673,7 @@
        [form-input-element :dateofinstitution "Date of Institution" "date" data-set focus false]
        [form-input-combo   :nameofpo "Name of PO" data-set focus ]
        [form-input-element :dateofdecision "Date of Decision" "date" data-set focus false]
-       [form-input-element :title "Title" "text" data-set focus false]
+       [form-input-element :title "Nature of Case" "text" data-set focus false]
        [form-input-element :khasranumber "Khasra Number" "text" data-set focus false]
        [form-input-element :area "Area" "text" data-set focus false]
        [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus false]
@@ -665,9 +690,9 @@
        [:div.col-sm-12.col-md-offset-5 
         [button-tool-bar
          [button {:bs-style "success" :on-click save-function } "Save"]
-         [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]
-       ;;[:span (str @data-set)]
-       ]]]]]])
+         [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]]]
+       ;; [:span (str @data-set)]
+       ]]]])
 
 
 (defn map-mutation-data [mut]
@@ -687,22 +712,35 @@
 
 (defn add-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
-    (let [onres (fn[json]
-                  (reset! data-set {:isactive true}))]
-      (http-post (str serverhost "mutations")
-                 onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
+    (let [onres (fn[json] (reset! data-set {:isactive true}))]
+      (http-post (str serverhost "mutations") onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
     (reset! focus "on")))
 
 (defn update-form-onclick [data-set focus]
-  (if (= nil (form-validator @data-set))
-    (let [onres (fn[data]
-                  (secretary/dispatch! "/"))]
-      (when (and (not (nil? (:senddate @data-set)))
-                 (nil? (:receiveddate @data-set))) (swap! data-set assoc :racknumber ""))
-      (http-put (str serverhost "mutations/" (:id @data-set))
-                onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set))))))
-  (reset! focus "on"))
-
+  (if (= nil (@data-set :senddate) (@data-set :receiveddate))
+    (if (= nil (form-validator @data-set))
+      (let [onres (fn[data]
+                    (secretary/dispatch! "/"))]
+        (when (and (not (nil? (:senddate @data-set))) (nil? (:receiveddate @data-set)))
+          (swap! data-set assoc :racknumber ""))
+        (http-put (str serverhost "mutations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
+    (reset! focus "on"))
+    (if (and (not (nil? (@data-set :senddate))) (= nil (@data-set :receiveddate)))
+      (if (= nil (form-validator @data-set) (senddate-validator @data-set))
+        (let [onres (fn[data]
+                      (secretary/dispatch! "/"))]
+          (when (and (not (nil? (:senddate @data-set))) (nil? (:receiveddate @data-set)))
+            (swap! data-set assoc :racknumber ""))
+          (http-put (str serverhost "mutations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
+        (reset! focus "on"))
+      (when (and (not (nil? (@data-set :receiveddate))) (not (nil? (@data-set :receiveddate))))
+        (if (= nil (form-validator @data-set) (receiveddate-validator @data-set))
+          (let [onres (fn[data]
+                        (secretary/dispatch! "/"))]
+            (when (and (not (nil? (:senddate @data-set))) (nil? (:receiveddate @data-set)))
+              (swap! data-set assoc :racknumber ""))
+            (http-put (str serverhost "mutations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
+          (reset! focus "on"))))))
 
 (defn mutation-add-template []
   (let [add-data (r/atom {:isactive true})
@@ -946,10 +984,10 @@
                               :list "combo"
                               :placeholder "Name of P.O"}[datalist]]]
        [:div.col-sm-2
-        [:label "Title"]
+        [:label "Nature of Case"]
         [:input.form-control {:id "stitle"
                               :type "text"
-                              :placeholder "Title"}]]
+                              :placeholder "Nature of Case"}]]
        [:div.col-sm-2
         [:label "Khasra Number"]
         [:input.form-control {:id "skhasranumber"
@@ -2182,7 +2220,7 @@
         (http-get-auth (str serverhost "fieldbooks?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
 ;; ---------------------------------------------------------
-;; misc-records
+;; misc records
 
 (defn misc-form-validator [data-set]
   (first (b/validate data-set
@@ -2234,7 +2272,7 @@
       [:div.box-body
        [misc-input-row :filenumber "File Numbar" "text" data-set focus bool]
        [misc-input-row :subject "Subject" "text" data-set focus bool]
-       [misc-input-row :title "Title" "text" data-set focus bool]
+       [misc-input-row :title "Nature of Case" "text" data-set focus bool]
        [misc-input-row :remarks "Remarks" "text" data-set focus bool]
        [misc-input-row :dispatcheddate "Dispatched Date" "date" data-set focus bool]
        [misc-input-row :receiveddate "Recevied Date" "date" data-set focus false]
@@ -2338,7 +2376,7 @@
           (when (is-admin-or-super-admin) [:th " "])
           [:th "Fille Number"]
           [:th "Subject"]
-          [:th "Title"]
+          [:th "Nature of Case"]
           [:th "Remarks"]
           [:th "Dispatched Date"]
           [:th "Received Date"]
