@@ -27,6 +27,7 @@
                  [com.andrewmcveigh/cljs-time "0.4.0"]
                  [hodgepodge "0.1.3"]]
 
+  :min-lein-version "2.5.2"
   :plugins [[lein-ring "0.8.13"]
             [migratus-lein "0.1.7"]
             [lein-cljsbuild "1.0.4"]]
