@@ -1,0 +1,1 @@
+web: java $JVM_OPTS -cp target/rrm-0.1.0-SNAPSHOT

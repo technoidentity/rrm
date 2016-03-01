@@ -20,7 +20,7 @@
            goog.date.Date
            goog.array))
 
-(def serverhost "http://localhost:9000/")
+(def serverhost "http://rrmapi.herokuapp.com/")
 
 (defonce citizen-storage (r/atom {:mutations {}
                                   :current-page 1

@@ -40,6 +40,8 @@
                   :subname "//localhost:5432/rrm"
                   :user "postgres"
                   :password "Design_20"}}
+
+  :uberjar-name "rrm-0.1.0-SNAPSHOT-standalone.jar"
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring-mock "0.1.5"]]}
