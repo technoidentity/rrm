@@ -46,5 +46,5 @@
 (defn -main
   "Record Room Management System "
   [& args]
-  (jetty/run-jetty app {:port 80
+  (jetty/run-jetty app {:port 8080
                         :join? false}))
