@@ -195,7 +195,7 @@
                                (set-key-value :message-server "No Records to Display")
                                (set-key-value :mutations nil)
                                (set-key-value :message-client nil)
-                               (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
+                               (set-key-value :total-pages nil)
                                (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1")))
                              (do
                                (set-key-value :message-server nil)
@@ -208,7 +208,7 @@
         (set-key-value :message-client "Please Enter Any One Field")
         (set-key-value :message-server nil)
         (set-key-value :mutations nil)
-        (set-key-value :current-page nil)
+        (set-key-value :total-pages nil)
         (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1")))
       (do
         (set-key-value :message-client nil)

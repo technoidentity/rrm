@@ -41,7 +41,9 @@
                           :token ""
                           :is-searched-results false
                           :user nil
-                          :mutationnumbers nil}))
+                          :mutationnumbers nil
+                          :message-client nil
+                          :message-server nil}))
 
 (def serverhost "http://localhost:9000/")
 
@@ -348,6 +350,7 @@
 
 ;;.............. End of Tab Events ......
 
+
 (defn search [event]
   (let [mn   (.-value (.getElementById js/document "mutationnumber"))
         st   (.-value (.getElementById js/document "stitle"))
@@ -361,15 +364,33 @@
         fp (.-value (.getElementById js/document "snameofthefirstparty"))
         sp (.-value (.getElementById js/document "snameofthesecondparty"))
         onres (fn [json] (let [data (getdata json)]
-                          (set-key-value :mutations (.-data data))
-                          (set-key-value :total-pages
-                                         (get-total-rec-no (.-pagesCount data)))
-                          (set-page! [render-mutations (get-value! :mutations)])))]
-    (set-key-value :current-page 1)
-    (set-key-value :is-searched-results true)
-    (http-get-auth (str (get-search-url
-                         vid mn fp sp po
-                         kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))
+                           (if (empty? (.-data data))
+                             (do
+                               (set-key-value :message-server "No Records to Display")
+                               (set-key-value :mutations nil)
+                               (set-key-value :message-client nil)
+                               (set-key-value :total-pages nil)
+                               (set-page! [render-mutations (get-value! :mutations)]))
+                             (do
+                               (set-key-value :message-server nil)
+                               (set-key-value :message-client nil)
+                               (set-key-value :mutations (.-data data))
+                               (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
+                               (set-page! [render-mutations (get-value! :mutations)]  )))))]
+    (if (and (empty? mn) (empty? st) (= "0" vid) (empty? po) (empty? so2) (empty? so4) (empty? so6) (empty? knum) (empty? kknum) (empty? fp) (empty? sp))
+      (do
+        (set-key-value :message-client "Please Enter Any One Field")
+        (set-key-value :message-server nil)
+        (set-key-value :mutations nil)
+        (set-key-value :total-pages nil)
+        (set-page! [render-mutations (get-value! :mutations)] ))
+      (do
+        (set-key-value :message-client nil)
+        (set-key-value :current-page 1)
+        (set-key-value :is-searched-results true)
+        (http-get (str (get-search-url
+                        vid mn fp sp po
+                        kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))))
 
 ;; --------------------------------------------------------------------------
 ;; mutation form
@@ -920,8 +941,8 @@
 (defn render-mutations [mutations]
   [:div.col-md-12
    [:div {:class "box"}
-    [:div {:class "box-header"}
-      [:h3.box-title "Search for Mutation Records"]]
+    [:div.col-md-offset-5
+     [:h3 "Mutation Details"]]
     [:div.box-body
      [:div.form-group
       [:div.row
@@ -1001,17 +1022,28 @@
      [:hr]
      [:div.form-group
       [:div.row
-       [:div.col-sm-8.col-md-offset-5 
+       [:div.col-sm-4 
         [button-tool-bar
-         [button {:bs-style "primary"  :on-click search } "Search"]
-         [button {:bs-style "primary"  :on-click add} "Add New"]
-         [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]
-        ]]]]]
+         [button {:bs-style "primary"  :on-click search } "Search"]]]
+        [:div.col-sm-4
+         (if (:message-client @storage)
+           [:div.alert.alert-danger [:b [:i.icon.fa.fa-ban] (str (:message-client @storage))]]
+           [:div])
+         (if (:message-server @storage)
+           [:div.alert.alert-danger [:b [:i.icon.fa.fa-ban] (str (:message-server @storage))]]
+           [:div])]]]
+     ]]
 
    [:div.box
     [:div.box-header
      [:h3.box-title "List of Mutations"]]
     [:div {:class "box-body"}
+     [:div.form-group
+      [:div.row
+       [:div.col-sm-10
+        [button-tool-bar
+         [button {:bs-style "primary"  :on-click add} "Add New"]
+         [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]]]]
      [:div.table-responsive
      [:table {:class "table table-bordered table-striped dataTable"}
       [:thead
