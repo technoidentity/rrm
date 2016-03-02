@@ -2230,9 +2230,13 @@
                      :remarks [[v/required :message "Field is required"]]
                      :dispatcheddate [[v/required :message "Field is required"]
                                       [year-after? :message "Year must greater than 1900"]
-                                      [year-before? :message "Year must less than 9999"]]
-                     ;; :receiveddate [[v/required :message "Field is required"]]
-                     )))
+                                      [year-before? :message "Year must less than 9999"]])))
+
+(defn misc-receiveddate-validator [data-set]
+  (first (b/validate data-set
+                     :receiveddate [[v/required :message "Field is required"]
+                                    [year-after? :message "Year must greater than 1900"]
+                                    [year-before? :message "Year must less than 9999"]])))
 
 (defn misc-input-element [id ttype data-set placeholder in-focus bool]
   [:input.form-control {:id id
@@ -2258,6 +2262,18 @@
                            [:b (str (first ((misc-form-validator @data-set) id)))]])
                         [:div])]])))
 
+(defn misc-reciveddate [id label ttype data-set focus bool]
+  (let [input-focus (r/atom nil)]
+    (fn []
+      [:div.form-group
+       [:label.col-sm-3.control-label label]
+       [:div.col-sm-6 [misc-input-element id ttype data-set label input-focus bool]]
+       [:div.col-sm-3 (if @focus
+                        (if (= nil (misc-receiveddate-validator @data-set))
+                          [:div]
+                          [:div {:style  {:color "red"}}
+                           [:b (str (first ((misc-receiveddate-validator @data-set) id)))]])
+                        [:div])]])))
 
 (defn misc-form-cancel [event]
   (secretary/dispatch! "/misc"))
@@ -2275,7 +2291,7 @@
        [misc-input-row :title "Nature of Case" "text" data-set focus bool]
        [misc-input-row :remarks "Remarks" "text" data-set focus bool]
        [misc-input-row :dispatcheddate "Dispatched Date" "date" data-set focus bool]
-       [misc-input-row :receiveddate "Recevied Date" "date" data-set focus false]
+       [misc-reciveddate :receiveddate "Recevied Date" "date" data-set focus false]
        [:div.box-footer
         [:div.col-sm-8.col-md-offset-5 
          [button-tool-bar
@@ -2283,17 +2299,27 @@
           [button {:bs-style "danger" :on-click misc-form-cancel } "Cancel"]]] ]]]]]])
 
 (defn misc-add-form-onclick [data-set focus]
-  (if (= nil (misc-form-validator @data-set))
-    (let [onres (fn[json] (secretary/dispatch! "/misc"))]
-      (http-post (str serverhost "miscs") onres  (.serialize (Serializer.) (clj->js @data-set))))
-    (reset! focus "on")))
+  (if (= nil (@data-set :receiveddate))
+    (if (= nil (misc-form-validator @data-set))
+      (let [onres (fn[json] (secretary/dispatch! "/misc"))]
+        (http-post (str serverhost "miscs") onres  (.serialize (Serializer.) (clj->js @data-set))))
+      (reset! focus "on"))
+    (if (= nil (misc-form-validator @data-set) (misc-receiveddate-validator @data-set))
+      (let [onres (fn[json] (secretary/dispatch! "/misc"))]
+        (http-post (str serverhost "miscs") onres  (.serialize (Serializer.) (clj->js @data-set))))
+      (reset! focus "on"))))
 
 
 (defn misc-update-form-onclick [data-set focus]
-  (if (= nil (misc-form-validator @data-set))
-    (let [onres (fn[data] (secretary/dispatch! "/misc"))]
-      (http-put (str serverhost "miscs/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
-    (reset! focus "on")))
+  (if (= nil (@data-set :receiveddate))
+    (if (= nil (misc-form-validator @data-set))
+      (let [onres (fn[data] (secretary/dispatch! "/misc"))]
+        (http-put (str serverhost "miscs/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
+      (reset! focus "on"))
+    (if (= nil (misc-form-validator @data-set) (misc-receiveddate-validator @data-set))
+      (let [onres (fn[data] (secretary/dispatch! "/misc"))]
+        (http-put (str serverhost "miscs/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
+      (reset! focus "on"))))
 
 
 (defn misc-add-template []
@@ -2385,11 +2411,11 @@
          (doall (for [mt miscs]
                   ^{:key (.-id mt)}
                   [:tr
-                   [:td [button {:bs-style "success"
-                                 :on-click  #(misc-update(.-id mt))} "Update"]] 
+                   (when (and  (.-dispatcheddate mt) (.-receiveddate mt))
+                     {:style {:background-color "#e2fad3"}})
+                   [:td [button {:bs-style "success" :on-click  #(misc-update(.-id mt))} "Update"]] 
                    (when (is-admin-or-super-admin)
-                     [:td  [button {:bs-style "danger"
-                                    :on-click #(misc-delete(.-id mt))} "Delete"]])
+                     [:td  [button {:bs-style "danger" :on-click #(misc-delete(.-id mt))} "Delete"]])
                    [:td (.-filenumber mt)]
                    [:td (.-subject mt)]
                    [:td (.-title mt)]
