@@ -2412,7 +2412,7 @@
                   ^{:key (.-id mt)}
                   [:tr
                    (when (and  (.-dispatcheddate mt) (.-receiveddate mt))
-                     {:style {:background-color "#e2fad3"}})
+                     {:style {:background-color "#b5f9c0"}})
                    [:td [button {:bs-style "success" :on-click  #(misc-update(.-id mt))} "Update"]] 
                    (when (is-admin-or-super-admin)
                      [:td  [button {:bs-style "danger" :on-click #(misc-delete(.-id mt))} "Delete"]])
