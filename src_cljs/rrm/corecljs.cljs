@@ -43,7 +43,7 @@
                           :user nil
                           :mutationnumbers nil}))
 
-(def serverhost "http://rrmapi.herokuapp.com/")
+(def serverhost "http://localhost:9000/")
 
 (defn set-key-value [k v]
   (reset! storage (assoc @storage k v)))

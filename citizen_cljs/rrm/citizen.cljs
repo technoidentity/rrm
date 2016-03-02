@@ -20,7 +20,7 @@
            goog.date.Date
            goog.array))
 
-(def serverhost "http://rrmapi.herokuapp.com/")
+(def serverhost "http://localhost:9000/")
 
 (defonce citizen-storage (r/atom {:mutations {}
                                   :current-page 1
@@ -35,7 +35,8 @@
                                   :token ""
                                   :is-searched-results false
                                   :user nil
-                                  :message nil}))
+                                  :message-server nil
+                                  :message-client nil}))
 
 
 
@@ -191,20 +192,32 @@
         onres (fn [json] (let [data (getdata json)]
                            (if (empty? (.-data data))
                              (do
-                               (set-key-value :message "No Records to Display")
+                               (set-key-value :message-server "No Records to Display")
                                (set-key-value :mutations nil)
+                               (set-key-value :message-client nil)
                                (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
                                (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1")))
                              (do
-                               (set-key-value :message nil)
+                               (set-key-value :message-server nil)
+                               (set-key-value :message-client nil)
                                (set-key-value :mutations (.-data data))
                                (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
                                (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1"))))))]
-    (set-key-value :current-page 1)
-    (set-key-value :is-searched-results true)
-    (http-get (str (get-search-url
-                    vid mn fp sp po
-                    kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))
+    (if (and (empty? mn) (empty? st) (= "0" vid) (empty? po) (empty? so2) (empty? so4) (empty? so6) (empty? knum) (empty? kknum) (empty? fp) (empty? sp))
+      (do
+        (set-key-value :message-client "Please Enter Any One Field")
+        (set-key-value :message-server nil)
+        (set-key-value :mutations nil)
+        (set-key-value :current-page nil)
+        (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1")))
+      (do
+        (set-key-value :message-client nil)
+        (set-key-value :current-page 1)
+        (set-key-value :is-searched-results true)
+        (http-get (str (get-search-url
+                        vid mn fp sp po
+                        kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))))
+
 
 (defn get-data [val]
   (let [res (fn [json]
@@ -221,12 +234,13 @@
 (defn render-mutations [mutations]
   [:div.col-md-12
    [:div {:class "box"}
-    [:div {:class "box-header"}
-     [:h3.box-title "Search for Mutation Records"]]
+    [:div.col-md-offset-5
+     [:h3 "Mutation Details"]]
     [:div.box-body
      [:div.form-group
       [:div.row
-       [:div.col-sm-2 "Mutation Number"
+       [:div.col-sm-3
+        [:label "Mutation Number"]
         [:input.form-control {:id "mutationnumber"
                               :list "combo"
                               :type "text"
@@ -300,10 +314,16 @@
                               :placeholder "Khata Khatuni Number"}]]]]
      [:div.form-group
       [:div.row
-       [:div.col-sm-6
+       [:div.col-sm-4
         [button {:bs-style "primary" :on-click search } "Search"]]
-       [:div.col-sm-6.col-md-offset-5
-        [:h3 {:style  {:color "red"}} (str (:message @citizen-storage))]]]]
+       [:div.col-sm-4
+        (if (:message-client @citizen-storage)
+          [:div.alert.alert-danger [:b [:i.icon.fa.fa-ban] (str (:message-client @citizen-storage))]]
+          [:div])
+        (if (:message-server @citizen-storage)
+          [:div.alert.alert-danger [:b [:i.icon.fa.fa-ban] (str (:message-server @citizen-storage))]]
+          [:div])
+        ]]]
      ]]
 
    [:div.box
