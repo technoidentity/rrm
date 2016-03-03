@@ -621,7 +621,7 @@
          (when (nil? (:id @data-set)) [button {:bs-style "info" :on-click #((reset! data-set {:isactive true})
                                                                             (reset-mut-combo-boxes))} "Refresh"])
          [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]]]
-       ;;[:span (str @data-set)]
+       [:span (str @data-set)]
        ]]]])
 
 (defn receiveddate-validator [data-set]
@@ -733,7 +733,22 @@
 
 (defn add-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
-    (let [onres (fn[json] (reset! data-set {:isactive true}))]
+    (let [onres (fn[json] (swap! data-set dissoc
+                                 :mutationnumber
+                                 :khasranumber
+                                 :khatakhatuninumber
+                                 :nameofthesecondparty
+                                 :nameofthefirstparty
+                                 :nameofpo
+                                 :o6number
+                                 :o2number
+                                 :o4number
+                                 :title
+                                 :dateofdecision
+                                 :dateofinstitution
+                                 :racknumber
+                                 :area
+                                 ))]
       (http-post (str serverhost "mutations") onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
     (reset! focus "on")))
 
