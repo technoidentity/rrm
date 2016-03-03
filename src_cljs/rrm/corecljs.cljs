@@ -881,9 +881,24 @@
                                                (.-pagesCount mt)))
                   (set-key-value :current-page 1)
                   (set-page! [render-mutations (get-value! :mutations)])))]
-    (set-key-value :is-searched-results false)
-    (http-get-auth (str serverhost "mutations?pageIndex=0&pageSize=10") onres)))
-
+    (do
+      (set-key-value :is-searched-results false)
+      (set-key-value :message-client nil)
+      (set-key-value :message-server nil)
+      (set! (.-value (dom/getElement "mutationnumber")) "")
+      (set! (.-value (dom/getElement "stitle")) "")
+      (set! (.-value (dom/getElement "src-vill")) 0)
+      (set! (.-value (dom/getElement "src-sub")) 0)
+      (set! (.-value (dom/getElement "src-dist")) 0)
+      (set! (.-value (dom/getElement "svillagename")) "")
+      (set! (.-value (dom/getElement "so2number")) "")
+      (set! (.-value (dom/getElement "so4number")) "")
+      (set! (.-value (dom/getElement "so6number")) "")
+      (set! (.-value (dom/getElement "skhasranumber")) "")
+      (set! (.-value (dom/getElement "skhatakhatuninumber")) "")
+      (set! (.-value (dom/getElement "snameofthefirstparty")) "")
+      (set! (.-value (dom/getElement "snameofthesecondparty")) "")
+      (http-get-auth (str serverhost "mutations?pageIndex=0&pageSize=10") onres))))
 
 (defn src-dist-onchange [val]
   (let [res (fn [json]
@@ -1022,16 +1037,15 @@
      [:hr]
      [:div.form-group
       [:div.row
-       [:div.col-sm-4 
+       [:div.col-sm-4
         [button-tool-bar
-         [button {:bs-style "primary"  :on-click search } "Search"]]]
+         [button {:bs-style "primary"  :on-click search } "Search"]
+         [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]]
         [:div.col-sm-4
-         (if (:message-client @storage)
-           [:div.alert.alert-danger [:b [:i.icon.fa.fa-ban] (str (:message-client @storage))]]
-           [:div])
-         (if (:message-server @storage)
-           [:div.alert.alert-danger [:b [:i.icon.fa.fa-ban] (str (:message-server @storage))]]
-           [:div])]]]
+         (when (:message-client @storage)
+           [:div.alert.alert-danger [:center [:b [:i.icon.fa.fa-ban] (str (:message-client @storage))]]])
+         (when (:message-server @storage)
+           [:div.alert.alert-danger [:center [:b [:i.icon.fa.fa-ban] (str (:message-server @storage))]]])]]]
      ]]
 
    [:div.box
@@ -1042,12 +1056,11 @@
       [:div.row
        [:div.col-sm-10
         [button-tool-bar
-         [button {:bs-style "primary"  :on-click add} "Add New"]
-         [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]]]]
+         [button {:bs-style "primary"  :on-click add} "Add"]]]]]
      [:div.table-responsive
      [:table {:class "table table-bordered table-striped dataTable"}
       [:thead
-       [:tr 
+       [:tr
         (when (is-admin-or-super-admin) [:th ""])
         (when (is-admin-or-super-admin) [:th ""])
         [:th "Mutation Number"]
