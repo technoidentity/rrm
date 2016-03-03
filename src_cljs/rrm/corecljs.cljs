@@ -269,6 +269,13 @@
 
 (declare render-mutations)
 
+(defn set-authorized-list [json list-store-key
+                           list-page]
+  (let [dt (getdata json)]
+    (set-key-value list-store-key (.-data dt))
+    (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
+    (set-page! [list-page (get-value! list-store-key)])))
+
 (defn set-pager-data [sel-page-no]
   (let [mn   (.-value (.getElementById js/document "mutationnumber"))
         st   (.-value (.getElementById js/document "stitle"))
@@ -282,10 +289,9 @@
         fp (.-value (.getElementById js/document "snameofthefirstparty"))
         sp (.-value (.getElementById js/document "snameofthesecondparty"))
         onres (fn[json]
-                (let [dt (getdata json)]
-                  (set-key-value :mutations (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-page! [render-mutations (get-value! :mutations)])))]
+                (cond (= (get-status json) 200) (set-authorized-list json :mutations
+                                                                     render-mutations)
+                      :esle (sign-out)))]
     (http-get-auth (get-index-url (get-value! :is-searched-results)
                                   (dec (get-value! :current-page))
                                   vid mn fp sp po
@@ -363,20 +369,17 @@
         kknum (.-value (.getElementById js/document "skhatakhatuninumber"))
         fp (.-value (.getElementById js/document "snameofthefirstparty"))
         sp (.-value (.getElementById js/document "snameofthesecondparty"))
-        onres (fn [json] (let [data (getdata json)]
-                           (if (empty? (.-data data))
-                             (do
-                               (set-key-value :message-server "No Records to Display")
-                               (set-key-value :mutations nil)
-                               (set-key-value :message-client nil)
-                               (set-key-value :total-pages nil)
-                               (set-page! [render-mutations (get-value! :mutations)]))
-                             (do
-                               (set-key-value :message-server nil)
-                               (set-key-value :message-client nil)
-                               (set-key-value :mutations (.-data data))
-                               (set-key-value :total-pages (get-total-rec-no (.-pagesCount data)))
-                               (set-page! [render-mutations (get-value! :mutations)]  )))))]
+        onres (fn [json] (cond (= (get-status json) 200)(let [data (getdata json)]
+                                                         (if (empty? (.-data data))
+                                                           (do
+                                                             (set-key-value :message-server "No Records to Display")
+                                                             (set-key-value :message-client nil)
+                                                             (set-authorized-list json :mutations render-mutations))
+                                                           (do
+                                                             (set-key-value :message-server nil)
+                                                             (set-key-value :message-client nil)
+                                                             (set-authorized-list json :mutations render-mutations))))
+                              :else (sign-out)))]
     (if (and (empty? mn) (empty? st) (= "0" vid) (empty? po) (empty? so2) (empty? so4) (empty? so6) (empty? knum) (empty? kknum) (empty? fp) (empty? sp))
       (do
         (set-key-value :message-client "Please Enter Any One Field")
@@ -891,6 +894,7 @@
 (defn add [event]
   (secretary/dispatch! "/mutations/add"))
 
+
 (defn get-all-click [event]
   (let [onres (fn [json]
                 (let [mt (getdata json)]
@@ -1127,10 +1131,8 @@
 
 (defroute mutations-list "/mutations" []
   (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :mutations (.-data dt))
-                  (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                  (set-page!  [render-mutations (get-value! :mutations)])))]
+                (cond (= (get-status json) 200) (set-authorized-list json :mutations render-mutations)
+                      :else (sign-out)))]
     (set-key-value :is-searched-results false)
     (http-get-auth (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
@@ -1395,15 +1397,12 @@
 
 
 (defroute revenue-list "/revenue" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :revenues (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-revenue (get-value! :revenues)])))]
-        (set-url "/revenue")
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "revenuerecords?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :revenues render-revenue)
+                      :else (sign-out)))]
+    (set-url "/revenue")
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "revenuerecords?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 ;; ---------------------------------------------------------
@@ -1621,10 +1620,8 @@
 (defroute khasragirdwani-list "/khasragirdwani" []
   (if (nil? (get-value! :user)) (set-page! [login])
       (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :khasragirdwanis (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-khasragirdwani (get-value! :khasragirdwanis)])))]
+                    (cond (= (get-status json) 200) (set-authorized-list json :khasragirdwanis render-khasragirdwani)
+                          :else (sign-out)))]
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "khasragirdwanis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -1837,10 +1834,8 @@
 (defroute masavi-list "/masavi" []
   (if (nil? (get-value! :user)) (set-page! [login])
       (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :masavis (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-masavi (get-value! :masavis)])))]
+                    (cond (= (get-status json) 200) (set-authorized-list json :masavis render-masavi)
+                          :else (sign-out)))]
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "masavis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -2055,10 +2050,8 @@
 (defroute consolidation-list "/consolidation" []
   (if (nil? (get-value! :user)) (set-page! [login])
       (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :consolidations (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-consolidation (get-value! :consolidations)])))]
+                    (cond (= (get-status json) 200) (set-authorized-list json :consolidations render-consolidation)
+                          :else (sign-out)))]
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "consolidations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -2275,10 +2268,8 @@
 (defroute fieldbook-list "/fieldbook" []
   (if (nil? (get-value! :user)) (set-page! [login])
       (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :fieldbooks (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-fieldbook (get-value! :fieldbooks)])))]
+                    (cond (= (get-status json) 200) (set-authorized-list json :fieldbooks render-fieldbook)
+                          :else (sign-out)))]
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "fieldbooks?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -2490,10 +2481,8 @@
 (defroute misc-list "/misc" []
   (if (nil? (get-value! :user)) (set-page! [login])
       (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :miscs (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-misc (get-value! :miscs)])))]
+                    (cond (= (get-status json) 200) (set-authorized-list json :miscs render-misc)
+                          :else (sign-out)))]
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "miscs?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -2785,10 +2774,8 @@
 (defroute o2register-list "/o2register" []
   (if (nil? (get-value! :user)) (set-page! [login])
       (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :o2registers (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page! [render-o2register (get-value! :o2registers)])))]
+                    (cond (= (get-status json) 200) (set-authorized-list json :o2registers render-o2register)
+                          :else (sign-out)))]
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "o2registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -3009,10 +2996,8 @@
 (defroute o4register-list "/o4register" []
   (if (nil? (get-value! :user)) (set-page! [login])
       (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :o4registers (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-o4register (get-value! :o4registers)])))]
+                    (cond (= (get-status json) 200) (set-authorized-list json :o4registers render-o4register)
+                          :else (sign-out)))]
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "o4registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -3249,10 +3234,8 @@
 (defroute o6register-list "/o6register" []
   (if (nil? (get-value! :user)) (set-page! [login])
       (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :o6registers (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page!  [render-o6register (get-value! :o6registers)])))]
+                    (cond (= (get-status json) 200) (set-authorized-list json :o6registers render-o6register)
+                          :else (sign-out)))]
         (set-key-value :is-searched-results false)
         (http-get-auth (str serverhost "o6registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
 
@@ -3269,17 +3252,14 @@
 
 
 (defroute home-path "/" []
-  (if (nil? (get-value! :user)) (set-key-value :page-location [login])
-      (let [onres (fn [json]
-                    (let [dt (getdata json)]
-                      (set-key-value :mutations (.-data dt))
-                      (set-key-value :total-pages (get-total-rec-no (.-pagesCount dt)))
-                      (set-page! [render-mutations (get-value! :mutations)])))
-            dist-res (fn[json] (set-key-value :districts (getdata json)))]
-        (do
-          (set-key-value :is-searched-results false)
-          (http-get-auth (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)
-          (http-get-auth (str serverhost "districts") dist-res)))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :mutations render-mutations)
+                      :else (sign-out)))
+        dist-res (fn[json] (set-key-value :districts (getdata json)))]
+    (do
+      (set-key-value :is-searched-results false)
+      (http-get-auth (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)
+      (http-get-auth (str serverhost "districts") dist-res))))
 
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
