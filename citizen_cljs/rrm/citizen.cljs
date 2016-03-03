@@ -218,6 +218,26 @@
                         vid mn fp sp po
                         kknum so2 st knum so4 so6)"&pageIndex=0&pageSize=10") onres)))))
 
+(defn get-all-click [event]
+  (set-key-value :mutations nil)
+  (set-key-value :total-pages nil)
+  (set-key-value :is-searched-results false)
+  (set-key-value :message-client nil)
+  (set-key-value :message-server nil)
+  (set! (.-value (dom/getElement "mutationnumber")) "")
+  (set! (.-value (dom/getElement "stitle")) "")
+  (set! (.-value (dom/getElement "src-vill")) 0)
+  (set! (.-value (dom/getElement "src-sub")) 0)
+  (set! (.-value (dom/getElement "src-dist")) 0)
+  (set! (.-value (dom/getElement "svillagename")) "")
+  (set! (.-value (dom/getElement "so2number")) "")
+  (set! (.-value (dom/getElement "so4number")) "")
+  (set! (.-value (dom/getElement "so6number")) "")
+  (set! (.-value (dom/getElement "skhasranumber")) "")
+  (set! (.-value (dom/getElement "skhatakhatuninumber")) "")
+  (set! (.-value (dom/getElement "snameofthefirstparty")) "")
+  (set! (.-value (dom/getElement "snameofthesecondparty")) "")
+  (r/render [render-mutations (get-value! :mutations)]  (.getElementById js/document "app1")))
 
 (defn get-data [val]
   (let [res (fn [json]
@@ -314,16 +334,15 @@
                               :placeholder "Khata Khatuni Number"}]]]]
      [:div.form-group
       [:div.row
+       [:div.col-sm-4 
+        [button-tool-bar
+         [button {:bs-style "primary"  :on-click search } "Search"]
+         [button {:id "getall" :bs-style "primary" :on-click get-all-click} "Refresh"]]]
        [:div.col-sm-4
-        [button {:bs-style "primary" :on-click search } "Search"]]
-       [:div.col-sm-4
-        (if (:message-client @citizen-storage)
-          [:div.alert.alert-danger [:b [:i.icon.fa.fa-ban] (str (:message-client @citizen-storage))]]
-          [:div])
-        (if (:message-server @citizen-storage)
-          [:div.alert.alert-danger [:b [:i.icon.fa.fa-ban] (str (:message-server @citizen-storage))]]
-          [:div])
-        ]]]
+        (when (:message-client @citizen-storage)
+          [:div.alert.alert-danger [:center  [:b [:i.icon.fa.fa-ban] (str (:message-client @citizen-storage))]]])
+        (when (:message-server @citizen-storage)
+          [:div.alert.alert-danger [:center  [:b [:i.icon.fa.fa-ban] (str (:message-server @citizen-storage))]]])]]]
      ]]
 
    [:div.box
