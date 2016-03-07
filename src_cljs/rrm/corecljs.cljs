@@ -3223,10 +3223,11 @@
       (http-get-auth (str serverhost "districts") dist-res))))
 
 (defroute login-page "/login" []
-  (when (nil? (get-value! :user))
+  (if (nil? (get-value! :user))
     (do
       (set-key-value :page-location [login])
-      (set-login-page))))
+      (set-login-page))
+    (accountant/navigate! "/")))
 
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
