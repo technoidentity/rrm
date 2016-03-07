@@ -22,7 +22,8 @@
                                      remove-item
                                      clear!
                                      length]]
-            [cljs.reader :as reader])
+            [cljs.reader :as reader]
+            [accountant.core :as accountant])
   (:import goog.History
            goog.json.Serializer
            goog.date.Date
@@ -193,8 +194,8 @@
 (defn sign-out []
   (set-key-value :user nil)
   (remove-item local-storage "session")
-  (set-page! [login])
-  (set-login-page))
+  ;;(set-page! [login])
+  (accountant/navigate! "/login"))
 
 (defn get-total-rec-no [nos]
   (let [totrec (quot nos 10)]
@@ -320,39 +321,39 @@
      [pager val trec]]))
 
 (defn cancel [event]
-  (secretary/dispatch! "/"))
+  (accountant/navigate! "/"))
 
 ;;...... Side Tab Events .........
 
 (defn mut-click [event]
-  (secretary/dispatch! "/"))
+  (accountant/navigate! "/"))
 
 (defn rev-click [event]
-  (secretary/dispatch! "/revenue"))
+  (accountant/navigate! "/revenue"))
 
 (defn khr-click [event]
-  (secretary/dispatch! "/khasragirdwani"))
+  (accountant/navigate! "/khasragirdwani"))
 
 (defn masavi-click [event]
-  (secretary/dispatch! "/masavi"))
+  (accountant/navigate! "/masavi"))
 
 (defn cons-click [event]
-  (secretary/dispatch! "/consolidation"))
+  (accountant/navigate! "/consolidation"))
 
 (defn field-click [event]
-  (secretary/dispatch! "/fieldbook"))
+  (accountant/navigate! "/fieldbook"))
 
 (defn misc-click [event]
-  (secretary/dispatch! "/misc"))
+  (accountant/navigate! "/misc"))
 
 (defn o2-click [event]
-  (secretary/dispatch! "/o2register"))
+  (accountant/navigate! "/o2register"))
 
 (defn o4-click [event]
-  (secretary/dispatch! "/o4register"))
+  (accountant/navigate! "/o4register"))
 
 (defn o6-click [event]
-  (secretary/dispatch! "/o6register"))
+  (accountant/navigate! "/o6register"))
 
 ;;.............. End of Tab Events ......
 
@@ -539,7 +540,7 @@
 
 
 (defn form-cancel [event]
-  (secretary/dispatch! "/"))
+  (accountant/navigate! "/"))
 
 (defn date-input [id data-set placeholder bool focus-on]
   [:input.form-control {:id id
@@ -762,15 +763,15 @@
   (if (= nil (@data-set :senddate) (@data-set :receiveddate))
     (if (= nil (form-validator @data-set))
       (let [onres (fn[data]
-                    (secretary/dispatch! "/"))]
+                    (accountant/navigate! "/"))]
         (when (and (not (nil? (:senddate @data-set))) (nil? (:receiveddate @data-set)))
           (swap! data-set assoc :racknumber ""))
         (http-put (str serverhost "mutations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
-    (reset! focus "on"))
+      (reset! focus "on"))
     (if (and (not (nil? (@data-set :senddate))) (= nil (@data-set :receiveddate)))
       (if (= nil (form-validator @data-set) (senddate-validator @data-set))
         (let [onres (fn[data]
-                      (secretary/dispatch! "/"))]
+                      (accountant/navigate! "/"))]
           (when (and (not (nil? (:senddate @data-set))) (nil? (:receiveddate @data-set)))
             (swap! data-set assoc :racknumber ""))
           (http-put (str serverhost "mutations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
@@ -778,7 +779,7 @@
       (when (and (not (nil? (@data-set :receiveddate))) (not (nil? (@data-set :receiveddate))))
         (if (= nil (form-validator @data-set) (receiveddate-validator @data-set))
           (let [onres (fn[data]
-                        (secretary/dispatch! "/"))]
+                        (accountant/navigate! "/"))]
             (when (and (not (nil? (:senddate @data-set))) (nil? (:receiveddate @data-set)))
               (swap! data-set assoc :racknumber ""))
             (http-put (str serverhost "mutations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
@@ -883,16 +884,16 @@
              #(update-form-onclick update-data focus) true]))))))
   
 (defn click-update[id]
-  (secretary/dispatch! (str "/mutations/update/" id)))
+  (accountant/navigate! (str "/mutations/update/" id)))
 
 (defn delete[id]
   (let [del-conf? (js/confirm "Are you sure you want to delete?")
         onres (fn [json]
-                (secretary/dispatch! "/"))]
+                (accountant/navigate! "/"))]
     (when del-conf? (http-delete (str serverhost "mutations/" id)  onres))))
 
 (defn add [event]
-  (secretary/dispatch! "/mutations/add"))
+  (accountant/navigate! "/mutations/add"))
 
 
 (defn get-all-click [event]
@@ -1138,11 +1139,12 @@
 
 
 (defroute documents-path "/mutations/add" []
-  (let [onres (fn[json](
-                       (set-key-value :districts (getdata json))
-                       (set-page! [mutation-add-template])))]
-    (set-url "/mutations/add")
-    (http-get-auth (str serverhost "districts") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :districts (getdata json))
+                           (set-page! [mutation-add-template])))]
+        (set-url "/mutations/add")
+        (http-get-auth (str serverhost "districts") onres))))
 
 (defroute documents-path1 "/mutations/update/:id" [id]
   (let [upd-data (first (filter (fn[obj] (=(.-id obj) (.parseInt js/window id))) (get-value! :mutations)))
@@ -1246,7 +1248,7 @@
    [:div.col-sm-3 [:div]]])
 
 (defn revenue-form-cancel [event]
-  (secretary/dispatch! "/revenue"))
+  (accountant/navigate! "/revenue"))
 
 (defn revenue-template [doc-name data-set focus save-function]
   [:div.container
@@ -1274,16 +1276,16 @@
 
 (defn revenue-add-form-onclick [data-set focus]
   (if (= nil (revenue-form-validator @data-set))
-    (let [onres (fn[json] (secretary/dispatch! "/revenue"))]
-          (http-post (str serverhost "revenuerecords") onres  (.serialize (Serializer.) (clj->js @data-set)))))
+    (let [onres (fn[json] (accountant/navigate! "/revenue"))]
+      (http-post (str serverhost "revenuerecords") onres  (.serialize (Serializer.) (clj->js @data-set)))))
   (reset! focus "on"))
 
 
 (defn revenue-update-form-onclick [data-set focus]
   (if (= nil (revenue-form-validator @data-set))
-    (let [onres (fn[data] (secretary/dispatch! "/revenue"))]
-          (http-put (str serverhost "revenuerecords/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
-    (reset! focus "on"))
+    (let [onres (fn[data] (accountant/navigate! "/revenue"))]
+      (http-put (str serverhost "revenuerecords/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
+  (reset! focus "on"))
 
 
 
@@ -1323,19 +1325,20 @@
 
 
 (defn revenue-update[id]
-  (secretary/dispatch! (str "/revenue/update/" id)))
+  (accountant/navigate! (str "/revenue/update/" id)))
 
 (defn revenue-delete[id]
   (let [onres (fn [json]
-                (secretary/dispatch! "/revenue"))]
+                (accountant/navigate! "/revenue"))]
     (http-delete (str serverhost "revenuerecords/" id)  onres)))
 
 
 (defroute revenue-add-path "/revenue/add" []
-  (let [onres (fn[json](
-                       (set-key-value :subdivisions (getdata json))
-                       (set-page! [revenue-add-template])))]
-    (http-get-auth (str serverhost "subdivisions") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :subdivisions (getdata json))
+                           (set-page! [revenue-add-template])))]
+        (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute revenue-upd-path "/revenue/update/:id" [id]
   (let [onres (fn[json](
@@ -1349,7 +1352,7 @@
       (http-get-auth (str serverhost "subdivisions") sub-res))))
 
 (defn revenue-add [event]
-  (secretary/dispatch! "/revenue/add"))
+  (accountant/navigate! "/revenue/add"))
 
 
 
@@ -1465,7 +1468,7 @@
        [:div.col-sm-3 [:div]]])))
 
 (defn khasragirdwani-form-cancel [event]
-  (secretary/dispatch! "/khasragirdwani"))
+  (accountant/navigate! "/khasragirdwani"))
 
 (defn khasragirdwani-template [doc-name data-set focus save-function]
   [:div.container
@@ -1494,16 +1497,16 @@
   (if (= nil (khasragirdwani-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :villageid
                                 (int (.-value (.getElementById js/document "khasragirdwani-districts")))))
-        (let [onres (fn[json] (secretary/dispatch! "/khasragirdwani"))]
+        (let [onres (fn[json] (accountant/navigate! "/khasragirdwani"))]
           (http-post (str serverhost "khasragirdwanis") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on")))
+    (reset! focus "on")))
 
 
 (defn khasragirdwani-update-form-onclick [data-set focus]
   (if (= nil (khasragirdwani-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :villageid
                                 (int (.-value (.getElementById js/document "khasragirdwani-districts")))))
-        (let [onres (fn[data] (secretary/dispatch! "/khasragirdwani"))]
+        (let [onres (fn[data] (accountant/navigate! "/khasragirdwani"))]
           (http-put (str serverhost "khasragirdwanis/"
                          (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
@@ -1548,19 +1551,20 @@
 
 
 (defn khasragirdwani-update[id]
-  (secretary/dispatch! (str "/khasragirdwani/update/" id)))
+  (accountant/navigate! (str "/khasragirdwani/update/" id)))
 
 (defn khasragirdwani-delete[id]
   (let [onres (fn [json]
-                (secretary/dispatch! "/khasragirdwani"))]
+                (accountant/navigate! "/khasragirdwani"))]
     (http-delete (str serverhost "khasragirdwanis/" id)  onres)))
 
 
 (defroute khasragirdwani-add-path "/khasragirdwani/add" []
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [khasragirdwani-add-template])))]
-    (http-get-auth (str serverhost "villages") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :villages (getdata json))
+                           (set-page! [khasragirdwani-add-template])))]
+        (http-get-auth (str serverhost "villages") onres))))
 
 (defroute khasragirdwani-upd-path "/khasragirdwani/update/:id" [id]
   (let [onres (fn[json](
@@ -1572,7 +1576,7 @@
     (http-get-auth (str serverhost "villages") onres)))
 
 (defn khasragirdwani-add [event]
-  (secretary/dispatch! "/khasragirdwani/add"))
+  (accountant/navigate! "/khasragirdwani/add"))
 
 (defn render-khasragirdwani [khasragirdwanis]
   [:div.col-sm-12
@@ -1618,12 +1622,11 @@
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute khasragirdwani-list "/khasragirdwani" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (cond (= (get-status json) 200) (set-authorized-list json :khasragirdwanis render-khasragirdwani)
-                          :else (sign-out)))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "khasragirdwanis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :khasragirdwanis render-khasragirdwani)
+                      :else (sign-out)))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "khasragirdwanis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 ;; ---------------------------------------------------------
@@ -1687,7 +1690,7 @@
 
 
 (defn masavi-form-cancel [event]
-  (secretary/dispatch! "/masavi"))
+  (accountant/navigate! "/masavi"))
 
 (defn masavi-template [doc-name data-set focus save-function]
   [:div.container
@@ -1714,15 +1717,15 @@
 (defn masavi-add-form-onclick [data-set focus]
   (if (= nil (masavi-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "masavi-districts")))))
-        (let [onres (fn[json] (secretary/dispatch! "/masavi"))]
+        (let [onres (fn[json] (accountant/navigate! "/masavi"))]
           (http-post (str serverhost "masavis") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on")))
+    (reset! focus "on")))
 
 
 (defn masavi-update-form-onclick [data-set focus]
   (if (= nil (masavi-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "masavi-districts")))))
-        (let [onres (fn[data] (secretary/dispatch! "/masavi"))]
+        (let [onres (fn[data] (accountant/navigate! "/masavi"))]
           (http-put (str serverhost "masavis/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
 
@@ -1764,18 +1767,19 @@
 
 
 (defn masavi-update[id]
-  (secretary/dispatch! (str "/masavi/update/" id)))
+  (accountant/navigate! (str "/masavi/update/" id)))
 
 (defn masavi-delete[id]
   (let [onres (fn [json]
-                (secretary/dispatch! "/masavi"))]
+                (accountant/navigate! "/masavi"))]
     (http-delete (str serverhost "masavis/" id)  onres)))
 
 (defroute masavi-add-path "/masavi/add" []
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [masavi-add-template])))]
-    (http-get-auth (str serverhost "villages") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :villages (getdata json))
+                           (set-page! [masavi-add-template])))]
+        (http-get-auth (str serverhost "villages") onres))))
 
 (defroute masavi-upd-path "/masavi/update/:id" [id]
   (let [onres (fn[json](
@@ -1786,7 +1790,7 @@
     (http-get-auth (str serverhost "villages") onres)))
 
 (defn masavi-add [event]
-  (secretary/dispatch! "/masavi/add"))
+  (accountant/navigate! "/masavi/add"))
 
 (defn render-masavi [masavis]
   [:div.col-md-12
@@ -1832,12 +1836,11 @@
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute masavi-list "/masavi" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (cond (= (get-status json) 200) (set-authorized-list json :masavis render-masavi)
-                          :else (sign-out)))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "masavis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :masavis render-masavi)
+                      :else (sign-out)))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "masavis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 ;; ---------------------------------------------------------
@@ -1901,10 +1904,10 @@
 
 
 (defn consolidation-form-cancel [event]
-  (secretary/dispatch! "/consolidation"))
+  (accountant/navigate! "/consolidation"))
 
 (defn consolidation-add [event]
-  (secretary/dispatch! "/consolidation/add"))
+  (accountant/navigate! "/consolidation/add"))
 
 (defn consolidation-template [doc-name data-set focus save-function]
   [:div.container
@@ -1932,7 +1935,7 @@
 (defn consolidation-add-form-onclick [data-set focus]
   (if (= nil (consolidation-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "consolidation-districts")))))
-        (let [onres (fn[json] (secretary/dispatch! "/consolidation"))]
+        (let [onres (fn[json] (accountant/navigate! "/consolidation"))]
           (http-post (str serverhost "consolidations") onres  (.serialize (Serializer.) (clj->js @data-set)))))
   (reset! focus "on")))
 
@@ -1940,7 +1943,7 @@
 (defn consolidation-update-form-onclick [data-set focus]
   (if (= nil (consolidation-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "consolidation-districts")))))
-        (let [onres (fn[data] (secretary/dispatch! "/consolidation"))]
+        (let [onres (fn[data] (accountant/navigate! "/consolidation"))]
           (http-put (str serverhost "consolidations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
 
@@ -1983,18 +1986,19 @@
 
 
 (defn consolidation-update[id]
-  (secretary/dispatch! (str "/consolidation/update/" id)))
+  (accountant/navigate! (str "/consolidation/update/" id)))
 
 (defn consolidation-delete[id]
   (let [onres (fn [json]
-                (secretary/dispatch! "/consolidation"))]
+                (accountant/navigate! "/consolidation"))]
     (http-delete (str serverhost "consolidations/" id)  onres)))
 
 (defroute consolidation-add-path "/consolidation/add" []
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [consolidation-add-template])))]
-    (http-get-auth (str serverhost "villages") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :villages (getdata json))
+                           (set-page! [consolidation-add-template])))]
+        (http-get-auth (str serverhost "villages") onres))))
 
 (defroute consolidation-upd-path "/consolidation/update/:id" [id]
   (let [onres (fn[json](
@@ -2048,12 +2052,11 @@
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute consolidation-list "/consolidation" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (cond (= (get-status json) 200) (set-authorized-list json :consolidations render-consolidation)
-                          :else (sign-out)))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "consolidations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :consolidations render-consolidation)
+                      :else (sign-out)))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "consolidations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 ;; ---------------------------------------------------------
@@ -2116,7 +2119,7 @@
        [:div.col-sm-3 [:div]]])))
 
 (defn fieldbook-form-cancel [event]
-  (secretary/dispatch! "/fieldbook"))
+  (accountant/navigate! "/fieldbook"))
 
 (defn fieldbook-template [doc-name data-set focus save-function]
   [:div.container
@@ -2143,15 +2146,15 @@
 (defn fieldbook-add-form-onclick [data-set focus]
   (if (= nil (fieldbook-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "fieldbook-districts")))))
-        (let [onres (fn[json] (secretary/dispatch! "/fieldbook"))]
+        (let [onres (fn[json] (accountant/navigate! "/fieldbook"))]
           (http-post (str serverhost "fieldbooks") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on")))
+    (reset! focus "on")))
 
 
 (defn fieldbook-update-form-onclick [data-set focus]
   (if (= nil (fieldbook-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :villageid (int (.-value (.getElementById js/document "fieldbook-districts")))))
-        (let [onres (fn[data] (secretary/dispatch! "/fieldbook"))]
+        (let [onres (fn[data] (accountant/navigate! "/fieldbook"))]
           (http-put (str serverhost "fieldbooks/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
 
@@ -2194,19 +2197,20 @@
 
 
 (defn fieldbook-update[id]
-  (secretary/dispatch! (str "/fieldbook/update/" id)))
+  (accountant/navigate! (str "/fieldbook/update/" id)))
 
 (defn fieldbook-delete[id]
   (let [onres (fn [json]
-                (secretary/dispatch! "/fieldbook"))]
+                (accountant/navigate! "/fieldbook"))]
     (http-delete (str serverhost "fieldbooks/" id)  onres)))
 
 
 (defroute fieldbook-add-path "/fieldbook/add" []
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [fieldbook-add-template])))]
-    (http-get-auth (str serverhost "villages") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :villages (getdata json))
+                           (set-page! [fieldbook-add-template])))]
+        (http-get-auth (str serverhost "villages") onres))))
 
 (defroute fieldbook-upd-path "/fieldbook/update/:id" [id]
   (let [onres (fn[json](
@@ -2217,7 +2221,7 @@
     (http-get-auth (str serverhost "villages") onres)))
 
 (defn fieldbook-add [event]
-  (secretary/dispatch! "/fieldbook/add"))
+  (accountant/navigate! "/fieldbook/add"))
 
 
 (defn render-fieldbook [fieldbooks]
@@ -2266,12 +2270,11 @@
 
 
 (defroute fieldbook-list "/fieldbook" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (cond (= (get-status json) 200) (set-authorized-list json :fieldbooks render-fieldbook)
-                          :else (sign-out)))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "fieldbooks?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :fieldbooks render-fieldbook)
+                      :else (sign-out)))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "fieldbooks?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 ;; ---------------------------------------------------------
 ;; misc records
@@ -2330,7 +2333,7 @@
                         [:div])]])))
 
 (defn misc-form-cancel [event]
-  (secretary/dispatch! "/misc"))
+  (accountant/navigate! "/misc"))
 
 (defn misc-template [doc-name data-set focus save-function bool]
   [:div.container
@@ -2355,11 +2358,11 @@
 (defn misc-add-form-onclick [data-set focus]
   (if (= nil (@data-set :receiveddate))
     (if (= nil (misc-form-validator @data-set))
-      (let [onres (fn[json] (secretary/dispatch! "/misc"))]
+      (let [onres (fn[json] (accountant/navigate! "/misc"))]
         (http-post (str serverhost "miscs") onres  (.serialize (Serializer.) (clj->js @data-set))))
       (reset! focus "on"))
     (if (= nil (misc-form-validator @data-set) (misc-receiveddate-validator @data-set))
-      (let [onres (fn[json] (secretary/dispatch! "/misc"))]
+      (let [onres (fn[json] (accountant/navigate! "/misc"))]
         (http-post (str serverhost "miscs") onres  (.serialize (Serializer.) (clj->js @data-set))))
       (reset! focus "on"))))
 
@@ -2367,11 +2370,11 @@
 (defn misc-update-form-onclick [data-set focus]
   (if (= nil (@data-set :receiveddate))
     (if (= nil (misc-form-validator @data-set))
-      (let [onres (fn[data] (secretary/dispatch! "/misc"))]
+      (let [onres (fn[data] (accountant/navigate! "/misc"))]
         (http-put (str serverhost "miscs/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
       (reset! focus "on"))
     (if (= nil (misc-form-validator @data-set) (misc-receiveddate-validator @data-set))
-      (let [onres (fn[data] (secretary/dispatch! "/misc"))]
+      (let [onres (fn[data] (accountant/navigate! "/misc"))]
         (http-put (str serverhost "miscs/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
       (reset! focus "on"))))
 
@@ -2411,24 +2414,25 @@
 
 
 (defn misc-add [event]
-  (secretary/dispatch! "/misc/add"))
+  (accountant/navigate! "/misc/add"))
 
 (defn misc-update[id]
-  (secretary/dispatch! (str "/misc/update/" id)))
+  (accountant/navigate! (str "/misc/update/" id)))
 
 (defn misc-delete[id]
   (let [onres (fn [json]
-                (secretary/dispatch! "/misc"))]
+                (accountant/navigate! "/misc"))]
     (http-delete (str serverhost "miscs/" id)  onres)))
 
 
 
 
 (defroute misc-add-path "/misc/add" []
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [misc-add-template])))]
-    (http-get-auth (str serverhost "villages") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :villages (getdata json))
+                           (set-page! [misc-add-template])))]
+        (http-get-auth (str serverhost "villages") onres))))
 
 (defroute misc-upd-path "/misc/update/:id" [id]
   (let [onres (fn[json](
@@ -2479,12 +2483,11 @@
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute misc-list "/misc" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (cond (= (get-status json) 200) (set-authorized-list json :miscs render-misc)
-                          :else (sign-out)))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "miscs?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :miscs render-misc)
+                      :else (sign-out)))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "miscs?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 ;; ---------------------------------------------------------
 ;; o2register-records
@@ -2585,7 +2588,7 @@
 
 
 (defn o2register-form-cancel [event]
-  (secretary/dispatch! "/o2register"))
+  (accountant/navigate! "/o2register"))
 
 
 (defn o2register-tags-template [id data-set]
@@ -2632,7 +2635,7 @@
 (defn o2register-add-form-onclick [data-set focus]
   (reset! data-set (assoc @data-set :o2number (.-value (.getElementById js/document "O2-select"))))
   (if (= nil (o2register-form-validator @data-set))
-    (let [onres (fn[json] (secretary/dispatch! "/o2register"))]
+    (let [onres (fn[json] (accountant/navigate! "/o2register"))]
       (http-post (str serverhost "o2registers") onres  (.serialize (Serializer.) (clj->js @data-set))))
     (reset! focus "on")))
 
@@ -2640,7 +2643,7 @@
 (defn o2register-update-form-onclick [data-set focus]
   (if (= nil (o2register-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :o2number  (.-value (.getElementById js/document "O2-select"))))
-        (let [onres (fn[data] (secretary/dispatch! "/o2register"))]
+        (let [onres (fn[data] (accountant/navigate! "/o2register"))]
           (http-put (str serverhost "o2registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
 
@@ -2691,22 +2694,23 @@
 
 
 (defn o2register-update[id]
-  (secretary/dispatch! (str "/o2register/update/" id)))
+  (accountant/navigate! (str "/o2register/update/" id)))
 
 (defn o2register-delete[id]
   (let [onres (fn [json]
-                (secretary/dispatch! "/o2register"))]
+                (accountant/navigate! "/o2register"))]
     (http-delete (str serverhost "o2registers/" id)  onres)))
 
 
 (defroute o2register-add-path "/o2register/add" []
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [o2register-add-template])))
-        ono2resp (fn [json] (set-key-value :o2mutations
-                                          (clj->js (cons "select" (js->clj (getdata json))))))]
-    (http-get-auth (str serverhost "mutations/o2numbers/search") ono2resp)
-    (http-get-auth (str serverhost "villages") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :villages (getdata json))
+                           (set-page! [o2register-add-template])))
+            ono2resp (fn [json] (set-key-value :o2mutations
+                                              (clj->js (cons "select" (js->clj (getdata json))))))]
+        (http-get-auth (str serverhost "mutations/o2numbers/search") ono2resp)
+        (http-get-auth (str serverhost "villages") onres))))
 
 (defroute o2register-upd-path "/o2register/update/:id" [id]
   (let [onres (fn[json](
@@ -2720,7 +2724,7 @@
     (http-get-auth (str serverhost "villages") onres)))
 
 (defn o2register-add [event]
-  (secretary/dispatch! "/o2register/add"))
+  (accountant/navigate! "/o2register/add"))
 
 (defn render-o2register [o2registers]
   [:div.col-md-12
@@ -2772,12 +2776,11 @@
        [:div.col-sm-6.col-md-offset-5  [shared-state 0]]]]])
 
 (defroute o2register-list "/o2register" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (cond (= (get-status json) 200) (set-authorized-list json :o2registers render-o2register)
-                          :else (sign-out)))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "o2registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :o2registers render-o2register)
+                      :else (sign-out)))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "o2registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 ;; ---------------------------------------------------------
 ;; o4register-records
@@ -2848,7 +2851,7 @@
        ^{:key (.-id d)} [:option {:value (.-o4number d)} (.-o4number d)])]]])
 
 (defn o4register-form-cancel [event]
-  (secretary/dispatch! "/o4register"))
+  (accountant/navigate! "/o4register"))
 
 
 (defn o4register-template [doc-name data-set focus save-function]
@@ -2877,7 +2880,7 @@
 (defn o4register-add-form-onclick [data-set focus]
   (reset! data-set (assoc @data-set :o4number  (.-value (.getElementById js/document "O4-select"))))
   (if (= nil (o4register-form-validator @data-set))
-    (let [onres (fn[json] (secretary/dispatch! "/o4register"))]
+    (let [onres (fn[json] (accountant/navigate! "/o4register"))]
       (http-post (str serverhost "o4registers") onres  (.serialize (Serializer.) (clj->js @data-set))))
     (reset! focus "on")))
 
@@ -2885,7 +2888,7 @@
 (defn o4register-update-form-onclick [data-set focus]
   (reset! data-set (assoc @data-set :o4number  (.-value (.getElementById js/document "O4-select"))))
   (if (= nil (o4register-form-validator @data-set))
-    (let [onres (fn[data] (secretary/dispatch! "/o4register"))]
+    (let [onres (fn[data] (accountant/navigate! "/o4register"))]
       (http-put (str serverhost "o4registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
     (reset! focus "on")))
 
@@ -2920,25 +2923,26 @@
 
 
 (defn o4register-add [event]
-  (secretary/dispatch! "/o4register/add"))
+  (accountant/navigate! "/o4register/add"))
 
 (defn o4register-update[id]
-  (secretary/dispatch! (str "/o4register/update/" id)))
+  (accountant/navigate! (str "/o4register/update/" id)))
 
 (defn o4register-delete[id]
   (let [onres (fn [json]
-                (secretary/dispatch! "/o4register"))]
+                (accountant/navigate! "/o4register"))]
     (http-delete (str serverhost "o4registers/" id)  onres)))
 
 
 (defroute o4register-add-path "/o4register/add" []
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [o4register-add-template])))
-        ono4resp (fn [json] (set-key-value :o4mutations
-                                          (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json))))))]
-    (http-get-auth (str serverhost "mutations/o4numbers/search") ono4resp)
-    (http-get-auth (str serverhost "villages") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :villages (getdata json))
+                           (set-page! [o4register-add-template])))
+            ono4resp (fn [json] (set-key-value :o4mutations
+                                              (clj->js (cons {:id 0 :o4number "select"} (js->clj (getdata json))))))]
+        (http-get-auth (str serverhost "mutations/o4numbers/search") ono4resp)
+        (http-get-auth (str serverhost "villages") onres))))
 
 (defroute o4register-upd-path "/o4register/update/:id" [id]
   (let [ono4resp (fn [json] (set-key-value :o4mutations
@@ -2994,12 +2998,11 @@
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute o4register-list "/o4register" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (cond (= (get-status json) 200) (set-authorized-list json :o4registers render-o4register)
-                          :else (sign-out)))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "o4registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :o4registers render-o4register)
+                      :else (sign-out)))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "o4registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 ;; ---------------------------------------------------------
@@ -3066,7 +3069,7 @@
 
 
 (defn o6register-form-cancel [event]
-  (secretary/dispatch! "/o6register"))
+  (accountant/navigate! "/o6register"))
 
 
 (defn o6register-tags-template [data-set]
@@ -3109,7 +3112,7 @@
   (if (= nil (o6register-form-validator @data-set))
     (do
       (reset! data-set (assoc @data-set :o6number (.-value (.getElementById js/document "O6-select"))))
-      (let [onres (fn[json] (secretary/dispatch! "/o6register"))]
+      (let [onres (fn[json] (accountant/navigate! "/o6register"))]
         (http-post (str serverhost "o6registers") onres  (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
 
@@ -3118,7 +3121,7 @@
   (if (= nil (o6register-form-validator @data-set))
     (do (reset! data-set (assoc @data-set :o6number (.-value (.getElementById js/document "O6-select"))))
       ;;  (js/console.log (clj->js @data-set))
-        (let [onres (fn[data] (secretary/dispatch! "/o6register"))]
+        (let [onres (fn[data] (accountant/navigate! "/o6register"))]
           (http-put (str serverhost "o6registers/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
     (reset! focus "on")))
 
@@ -3160,7 +3163,7 @@
 
 
 (defn o6register-update[id]
-  (secretary/dispatch! (str "/o6register/update/" id)))
+  (accountant/navigate! (str "/o6register/update/" id)))
 
 (defn o6register-delete[id]
   (let [onres (fn [json]
@@ -3168,13 +3171,14 @@
     (http-delete (str serverhost "o6registers/" id)  onres)))
 
 (defroute o6register-add-path "/o6register/add" []
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [o6register-add-template])))
-        ono6resp (fn [json] (set-key-value :o6mutations
-                                          (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json))))))]
-    (http-get-auth (str serverhost "mutations/o6numbers/search") ono6resp)
-    (http-get-auth (str serverhost "villages") onres)))
+  (if (nil? (get-value! :user)) (accountant/navigate! "/login")
+      (let [onres (fn[json](
+                           (set-key-value :villages (getdata json))
+                           (set-page! [o6register-add-template])))
+            ono6resp (fn [json] (set-key-value :o6mutations
+                                              (clj->js (cons {:id 0 :o6number "select"} (js->clj (getdata json))))))]
+        (http-get-auth (str serverhost "mutations/o6numbers/search") ono6resp)
+        (http-get-auth (str serverhost "villages") onres))))
 
 (defroute o6register-upd-path "/o6register/update/:id" [id]
   (let [onres (fn[json](
@@ -3188,7 +3192,7 @@
     (http-get-auth (str serverhost "villages") onres)))
 
 (defn o6register-add [event]
-  (secretary/dispatch! "/o6register/add"))
+  (accountant/navigate! "/o6register/add"))
 
 (defn render-o6register [o6registers]
   [:div.col-md-12
@@ -3232,12 +3236,11 @@
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
 (defroute o6register-list "/o6register" []
-  (if (nil? (get-value! :user)) (set-page! [login])
-      (let [onres (fn [json]
-                    (cond (= (get-status json) 200) (set-authorized-list json :o6registers render-o6register)
-                          :else (sign-out)))]
-        (set-key-value :is-searched-results false)
-        (http-get-auth (str serverhost "o6registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres))))
+  (let [onres (fn [json]
+                (cond (= (get-status json) 200) (set-authorized-list json :o6registers render-o6register)
+                      :else (sign-out)))]
+    (set-key-value :is-searched-results false)
+    (http-get-auth (str serverhost "o6registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 ;; ----------------------------------------------------------------------------------
 
@@ -3261,6 +3264,12 @@
       (http-get-auth (str serverhost "mutations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)
       (http-get-auth (str serverhost "districts") dist-res))))
 
+(defroute login-page "/login" []
+  (when (nil? (get-value! :user))
+    (do
+      (set-key-value :page-location [login])
+      (set-login-page))))
+
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
 
@@ -3277,15 +3286,25 @@
 
 (defn main
   []
-  (secretary/set-config! :prefix "#")
-  (secretary/dispatch! (get-current-route!))
+                                        ; (secretary/set-config! :prefix "#")
+                                        ;(secretary/dispatch! (get-current-route!))
+  (accountant/configure-navigation!
+   {:nav-handler
+    (fn [path]
+      (secretary/dispatch! path))
+    :path-exists?
+    (fn [path]
+      (secretary/locate-route path))})
+  (accountant/dispatch-current!)
+
   (r/render [page]
             (.getElementById js/document "app1"))
-  (let [history (History.)]
-    (events/listen history "navigate"
-                   (fn [event]
-                     (secretary/dispatch! (.-token event))))
-    (.setEnabled history true)))
+  ;; (let [history (History.)]
+  ;;   (events/listen history "navigate"
+  ;;                  (fn [event]
+  ;;                    (secretary/dispatch! (.-token event))))
+  ;;   (.setEnabled history true))
+  )
 
 (defn nav! [token]
   (.setToken (History.) token))
