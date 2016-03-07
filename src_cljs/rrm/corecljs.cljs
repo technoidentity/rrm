@@ -151,7 +151,7 @@
                                                          {:token (get-value! :token)
                                                           :user (get-value! :user)}})
                       (reset-login-page)
-                      (secretary/dispatch! "/"))))]
+                      (accountant/navigate! "/"))))]
       (http-post (str serverhost "login") onresp (.serialize (Serializer.) (clj->js @data-set ))))
     (reset! focus "on")))
 
