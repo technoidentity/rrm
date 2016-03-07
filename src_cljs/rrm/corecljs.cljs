@@ -2561,12 +2561,13 @@
      ^{:key  d}
      [:option {:value d} d])])
 
-
 (defn o2-form-o2num-sel [label id opt-data data-set]
   [:div.form-group
    [:label.col-sm-3.control-label label]
    [:div.col-sm-6 [o2num-sel-tag id opt-data data-set]]
    [:div.col-sm-3 [:div]]])
+
+
 
 (defn o2-subdiv-sel-tag [id data data-set ]
   [:select.form-control {:id id
@@ -2591,7 +2592,7 @@
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
-       [o2-form-o2num-sel "O2 Number" :o2number (:o2mutations @storage) data-set]
+       [o2register-input-row :o2number "O2 Number" "text" data-set focus]
        [o2register-input-row :startingdate "Starting Date" "date" data-set focus]
        [o2register-input-row :endingdate "Ending Date" "date" data-set focus]
        [o2-form-subdiv-sel "Sub Division Name" :subdivisionname (:subdivisions @storage) data-set]
@@ -2766,19 +2767,19 @@
                            [:b (str (first ((o4register-form-validator @data-set) id)))]])
                         [:div])]])))
 
-
 (defn o4register-form-cancel [event]
   (accountant/navigate! "/o4register"))
 
+
+
 (defn o4num-sel-tag [id data data-set ]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(swap! data-set assoc id  (-> % .-target .-value))}
+  [:input.form-control {:id id
+                        :value (@data-set id)
+                        :on-change #()}
    [:option {:value 0} "--Select--"]
    (for [d  data]
      ^{:key  (.-id d)}
      [:option {:value (.-o4number d)} (.-o4number d)])])
-
 
 (defn o4-form-o4num-sel [label id opt-data data-set]
   [:div.form-group
@@ -2792,6 +2793,7 @@
                 (set-key-value :villages dt)))]
     (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
         (swap! data-set assoc id (js/parseInt val)))))
+
 
 (defn o4-sub-sel-tag [id data data-set]
   [:select.form-control {:id id
@@ -2834,7 +2836,7 @@
      [:div.form-horizontal
       [:div.box-body
        [o4register-input-int-row :serialnumber "Serial Number" "text" data-set focus ]
-       [o4-form-o4num-sel "O4 Number" :o4number (:o4mutations @storage) data-set]
+       [o4register-input-row :o4number "O4 Number" "text" data-set focus]
        [o4-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
        [o4-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
        [o4register-input-row :racknumber "Rack Number" "text" data-set focus]
@@ -3059,7 +3061,7 @@
       [:h2.box-title doc-name]]
      [:div.form-horizontal
       [:div.box-body
-       [o6-form-o6num-sel "O6 Number" :o6number (:o6mutations @storage) data-set]
+       [o6register-input-row :o6number  "O6 Number" "text" data-set focus]
        [o6register-input-int-row :year "Year" "text" data-set focus]
        [o6register-input-row :misalnumber "Misal Number" "text" data-set focus]
        [o6register-input-row :startingdate "Starting Date" "date" data-set focus]
