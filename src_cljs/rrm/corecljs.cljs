@@ -141,8 +141,6 @@
             [:div {:style  {:color "red"}} [:b (str (first ((login-validator @data-set) id)))]])
           [:div])])))
 
-
-
           (defn submit-login [data-set focus]
             (if (= nil (login-validator @data-set))
               (let [onresp (fn [json]
@@ -1231,30 +1229,30 @@
                         [:div])]])))
 
 
-(defn rev-sub-onchange [id val data-set]
+(defn all-sub-onchange [id val data-set]
   (let [res (fn [json]
               (let [dt (getdata json)]
                 (set-key-value :villages dt)))]
     (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
         (swap! data-set assoc id (js/parseInt val)))))
 
-(defn rev-sub-sel-tag [id data data-set]
+(defn all-sub-sel-tag [id data data-set]
   [:select.form-control {:id id
                          :value (@data-set id)
-                         :on-change #(rev-sub-onchange  id (-> % .-target .-value) data-set)}
+                         :on-change #(all-sub-onchange  id (-> % .-target .-value) data-set)}
    [:option {:value 0} "--Select--"]
    (for [d  data]
      ^{:key (.-id d) }
      [:option {:value (.-id d)} (.-subdivisionname d)])])
 
-(defn rev-form-sub-sel [label id opt-data data-set]
+(defn all-form-sub-sel [label id opt-data data-set]
   [:div.form-group
    [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [rev-sub-sel-tag id opt-data data-set]]
+   [:div.col-sm-6 [all-sub-sel-tag id opt-data data-set]]
    [:div.col-sm-3 [:div]]])
 
 
-(defn rev-villages-sel-tag [id data data-set ]
+(defn all-villages-sel-tag [id data data-set ]
   [:select.form-control {:id id
                          :value (@data-set id)
                          :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
@@ -1263,10 +1261,10 @@
      ^{:key (.-id d) }
      [:option {:value (.-id d)} (.-villagename d)])])
 
-(defn rev-form-villages-sel [label id opt-data data-set]
+(defn all-form-villages-sel [label id opt-data data-set]
   [:div.form-group
    [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [rev-villages-sel-tag id opt-data data-set]]
+   [:div.col-sm-6 [all-villages-sel-tag id opt-data data-set]]
    [:div.col-sm-3 [:div]]])
 
 (defn revenue-form-cancel [event]
@@ -1281,18 +1279,17 @@
      [:div.form-horizontal
       [:div.box-body
        [revenue-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [rev-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [rev-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
        [revenue-input-int-row :year "Year" "text" data-set focus]
        [revenue-input-row :racknumber "Rack Number" "text" data-set focus]
-       [revenue-input-row :description "Description" "text" data-set focus]
+       [revenue-input-row :description "Description" "text" data-set focus]]
        [:div.box-footer
         [:div.col-sm-8.col-md-offset-5
          [button-tool-bar
           [button {:bs-style "success" :on-click save-function} "Save"]
           [button {:bs-style "danger" :on-click revenue-form-cancel } "Cancel"]]]
-        ]]]]]])
-
+        ]]]]])
 
 
 (defn revenue-add-form-onclick [data-set focus]
@@ -1307,19 +1304,6 @@
     (let [onres (fn[data] (accountant/navigate! "/revenue"))]
       (http-put (str serverhost "revenuerecords/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
   (reset! focus "on"))
-
-
-
-(defn revenue-on-change [event]
-  (let [ele (.getElementById js/document "id")
-        eval (.-value ele)
-        onresp (fn [json]
-                 (let [dt (getdata json)]
-                   (set-key-value :villages dt)))]
-    (set-key-value :villages [])
-    (when-not ( >  1 (.-length eval))
-      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
-
 
 (defn revenue-add-template []
   (let [add-data (r/atom {:isactive true})
@@ -1435,34 +1419,15 @@
 (defn khasragirdwani-form-validator [data-set]
   (first (b/validate data-set
                      :serialnumber [[v/required :message "Field is required Must be number"]]
-                     :year [[v/required :message "Field is required Must be number"]
+                     :villageid [[v/required :message "Field is required"]]
+                     :subdivisionid [[v/required :message "Field is required"]]
+                     ;; :tehsil [[v/required :message "Field is required"]]
+                     :year [[v/required :message "Field is required"]
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]])))
-
-(defn khasragirdwani-input-int [id ttype data-set placeholder in-focus]
-  [:input.form-control {:id id
-                        :type ttype
-                        :value (@data-set id)
-                        :placeholder placeholder
-                        :on-change #(swap! data-set assoc id (int (-> % .-target .-value )))
-                        :on-blur  #(reset! in-focus "on")
-                        }])
-
-
-(defn khasragirdwani-input-int-row [id label ttype data-set focus]
-  (let [input-focus (r/atom nil)]
-    (fn []
-      [:div.form-group
-       [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [khasragirdwani-input-int id ttype data-set label input-focus]]
-       [:div.col-sm-3 (if (or @input-focus @focus)
-                        (if (= nil (khasragirdwani-form-validator @data-set))
-                          [:div]
-                          [:div {:style  {:color "red"}}
-                           [:b (str (first ((khasragirdwani-form-validator @data-set) id)))]])
-                        [:div])]])))
+                     :description [[v/required :message "Field is required"]]
+                     )))
 
 (defn khasragirdwani-input-row [id label ttype data-set focus]
   (let [input-focus (r/atom nil)]
@@ -1477,47 +1442,23 @@
                            [:b (str (first ((khasragirdwani-form-validator @data-set) id)))]])
                         [:div])]])))
 
+(defn khasragirdwani-input-int-row [id label ttype data-set focus]
+  (let [input-focus (r/atom nil)]
+    (fn []
+      [:div.form-group
+       [:label.col-sm-3.control-label label]
+       [:div.col-sm-6 [input-int id ttype data-set label input-focus]]
+       [:div.col-sm-3 (if (or @input-focus @focus)
+                        (if (= nil (revenue-form-validator @data-set))
+                          [:div]
+                          [:div {:style  {:color "red"}}
+                           [:b (str (first ((revenue-form-validator @data-set) id)))]])
+                        [:div])]])))
 
-(defn kg-sub-onchange [id val data-set]
-  (let [res (fn [json]
-              (let [dt (getdata json)]
-                (set-key-value :villages dt)))]
-    (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
-        (swap! data-set assoc id (js/parseInt val)))))
-
-(defn kg-sub-sel-tag [id data data-set]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(kg-sub-onchange  id (-> % .-target .-value) data-set)}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-subdivisionname d)])])
-
-(defn kg-form-sub-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [kg-sub-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
-
-(defn kg-villages-sel-tag [id data data-set ]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-villagename d)])])
-
-(defn kg-form-villages-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [kg-villages-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
 
 (defn khasragirdwani-form-cancel [event]
   (accountant/navigate! "/khasragirdwani"))
+
 
 (defn khasragirdwani-template [doc-name data-set focus save-function]
   [:div.container
@@ -1528,51 +1469,38 @@
      [:div.form-horizontal
       [:div.box-body
        [khasragirdwani-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [kg-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [kg-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       ;; [khasragirdwani-input-row :tehsil "Tehsil" "text" data-set focus]
        [khasragirdwani-input-int-row :year "Year" "text" data-set focus]
        [khasragirdwani-input-row :racknumber "Rack Number" "text" data-set focus]
-       [khasragirdwani-input-row :description "Description" "text" data-set focus]
-       [:div.box-footer
-        [:div.col-sm-8.col-md-offset-5
-         [button-tool-bar
-          [button {:bs-style "success" :on-click save-function} "Save"]
-          [button {:bs-style "danger" :on-click khasragirdwani-form-cancel } "Cancel"]]]
-        ]]]]]])
-
-
+       [khasragirdwani-input-row :description "Description" "text" data-set focus]]
+      [:div.box-footer
+       [:div.col-sm-8.col-md-offset-5
+        [button-tool-bar
+         [button {:bs-style "success" :on-click save-function} "Save"]
+         [button {:bs-style "danger" :on-click khasragirdwani-form-cancel } "Cancel"]]]
+       ]]]]])
 
 (defn khasragirdwani-add-form-onclick [data-set focus]
-  (if (= nil (revenue-form-validator @data-set))
+  (if (= nil (khasragirdwani-form-validator @data-set))
     (let [onres (fn[json] (accountant/navigate! "/khasragirdwani"))]
-      (http-post (str serverhost "khasragirdwanis") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on"))
-
+      (http-post (str serverhost "khasragirdwanis")
+                 onres  (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 (defn khasragirdwani-update-form-onclick [data-set focus]
   (if (= nil (khasragirdwani-form-validator @data-set))
     (let [onres (fn[data] (accountant/navigate! "/khasragirdwani"))]
-      (http-put (str serverhost "khasragirdwanis/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on"))
-
-
-
-(defn khasragirdwani-on-change [event]
-  (let [ele (.getElementById js/document "id")
-        eval (.-value ele)
-        onresp (fn [json]
-                 (let [dt (getdata json)]
-                   (set-key-value :villages dt)))]
-    (set-key-value :villages [])
-    (when-not ( >  1 (.-length eval))
-      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
-
+      (http-put (str serverhost "khasragirdwanis/"
+                     (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 (defn khasragirdwani-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [khasragirdwani-template
-           "Khasra Girdwani Add Form"
+           "Khasragirdwani Add Form"
            add-data focus
            #(khasragirdwani-add-form-onclick add-data focus)])))
 
@@ -1581,16 +1509,16 @@
                              :serialnumber (.-serialnumber dmt)
                              :subdivisionid (.-subdivisionid dmt)
                              :villageid (.-villageid dmt)
+                             :tehsil (.-tehsil dmt)
                              :year (.-year dmt)
                              :racknumber (.-racknumber dmt)
                              :description (.-description dmt)
                              :isactive true})
         focus (r/atom nil)]
     (fn [] [khasragirdwani-template
-           "KhasraGirdwani Update Form"
-           update-data focus
-           #(khasragirdwani-update-form-onclick update-data focus)])))
-
+            "Khasragirdwani Update Form"
+            update-data focus
+            #(khasragirdwani-update-form-onclick update-data focus)])))
 
 (defn khasragirdwani-update[id]
   (accountant/navigate! (str "/khasragirdwani/update/" id)))
@@ -1600,7 +1528,6 @@
                 (accountant/navigate! "/khasragirdwani"))]
     (http-delete (str serverhost "khasragirdwanis/" id)  onres)))
 
-
 (defroute khasragirdwani-add-path "/khasragirdwani/add" []
   (if (nil? (get-value! :user)) (accountant/navigate! "/login")
       (let [onres (fn[json](
@@ -1608,27 +1535,25 @@
                            (set-page! [khasragirdwani-add-template])))]
         (http-get-auth (str serverhost "subdivisions") onres))))
 
-(defroute khasragirdwani-upd-path "/khasragirdwani/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [khasragirdwani-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :khasragirdwanis)))])))
-        sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
-    (do
-      (http-get-auth (str serverhost "villages") onres)
-      (http-get-auth (str serverhost "subdivisions") sub-res))))
+        (defroute khasragirdwani-upd-path "/khasragirdwani/update/:id" [id]
+          (let [onres (fn[json](
+                               (set-key-value :villages (getdata json))
+                               (set-page! [khasragirdwani-update-template id
+                                           (first (filter (fn[obj]
+                                                            (=(.-id obj) (.parseInt js/window id))) (get-value! :khasragirdwanis)))])))
+                sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
+            (do
+              (http-get-auth (str serverhost "villages") onres)
+              (http-get-auth (str serverhost "subdivisions") sub-res))))
 
 (defn khasragirdwani-add [event]
   (accountant/navigate! "/khasragirdwani/add"))
 
-
-
 (defn render-khasragirdwani [khasragirdwanis]
-  [:div.col-md-12
+  [:div.col-sm-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3.box-title "List of Khasragirdwani"]]
+     [:h3.box-title "List of Khasragirdwani Records"]]
     [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
@@ -1640,12 +1565,13 @@
           (when (is-admin-or-super-admin)[:th " "])
           (when (is-admin-or-super-admin)[:th " "])
           [:th "S.No"]
-          [:th "Sub Division Name"]
           [:th "Name of the Village"]
+          [:th "Sub Division Name"]
           ;; [:th "Tehsil"]
           [:th "Year"]
           [:th "Rack Number"]
-          [:th "Description"]]]
+          [:th "Description"]
+          ]]
         [:tbody
          (doall (for [mt khasragirdwanis]
                   ^{:key (.-id mt)}
@@ -1657,21 +1583,19 @@
                      [:td  [button {:bs-style "danger"
                                     :on-click #(khasragirdwani-delete(.-id mt))} "Delete"]])
                    [:td (.-serialnumber mt)]
-                   [:td (.-subdivisionname mt)]
                    [:td (.-villagename mt)]
-                   ;; [:td (.-tehsil mt)]
+                   [:td (.-subdivisionname mt)]
+                   ;;  [:td (.-tehsil mt)]
                    [:td (.-year mt)]
                    [:td (.-racknumber mt)]
                    [:td (.-description mt)]
                    ]))]]]
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
-
 (defroute khasragirdwani-list "/khasragirdwani" []
   (let [onres (fn [json]
                 (cond (= (get-status json) 200) (set-authorized-list json :khasragirdwanis render-khasragirdwani)
                       :else (sign-out)))]
-    (set-url "/khasragirdwani")
     (set-key-value :is-searched-results false)
     (http-get-auth (str serverhost "khasragirdwanis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
@@ -1679,32 +1603,25 @@
 ;; ---------------------------------------------------------
 ;; masavi-records
 
-
 (defn masavi-form-validator [data-set]
   (first (b/validate data-set
                      :serialnumber [[v/required :message "Field is required Must be number"]]
-                     :year [[v/required :message "Field is required Must be number"]
+                     :subdivisionid [[v/required :message "Field is required"]]
+                     :villageid [[v/required :message "Field is required"]]
+                     ;; :tehsil [[v/required :message "Field is required"]]
+                     :year [[v/required :message "Field is required"]
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]])))
-
-(defn masavi-input-int [id ttype data-set placeholder in-focus]
-  [:input.form-control {:id id
-                        :type ttype
-                        :value (@data-set id)
-                        :placeholder placeholder
-                        :on-change #(swap! data-set assoc id (int (-> % .-target .-value )))
-                        :on-blur  #(reset! in-focus "on")
-                        }])
-
+                     :description [[v/required :message "Field is required"]]
+                     )))
 
 (defn masavi-input-int-row [id label ttype data-set focus]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [masavi-input-int id ttype data-set label input-focus]]
+       [:div.col-sm-6 [input-int id ttype data-set label input-focus]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (masavi-form-validator @data-set))
                           [:div]
@@ -1725,45 +1642,6 @@
                            [:b (str (first ((masavi-form-validator @data-set) id)))]])
                         [:div])]])))
 
-
-(defn ms-sub-onchange [id val data-set]
-  (let [res (fn [json]
-              (let [dt (getdata json)]
-                (set-key-value :villages dt)))]
-    (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
-        (swap! data-set assoc id (js/parseInt val)))))
-
-(defn ms-sub-sel-tag [id data data-set]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(kg-sub-onchange  id (-> % .-target .-value) data-set)}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-subdivisionname d)])])
-
-(defn ms-form-sub-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [ms-sub-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
-
-(defn ms-villages-sel-tag [id data data-set ]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-villagename d)])])
-
-(defn ms-form-villages-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [ms-villages-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
 (defn masavi-form-cancel [event]
   (accountant/navigate! "/masavi"))
 
@@ -1776,51 +1654,37 @@
      [:div.form-horizontal
       [:div.box-body
        [masavi-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [ms-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [ms-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       ;; [masavi-input-row :tehsil "Tehsil" "text" data-set focus]
        [masavi-input-int-row :year "Year" "text" data-set focus]
        [masavi-input-row :racknumber "Rack Number" "text" data-set focus]
-       [masavi-input-row :description "Description" "text" data-set focus]
-       [:div.box-footer
-        [:div.col-sm-8.col-md-offset-5
-         [button-tool-bar
-          [button {:bs-style "success" :on-click save-function} "Save"]
-          [button {:bs-style "danger" :on-click masavi-form-cancel } "Cancel"]]]
-        ]]]]]])
+       [masavi-input-row :description "Description" "text" data-set focus]]
 
+      [:div.box-footer
+       [:div.col-sm-8.col-md-offset-5
+        [button-tool-bar
+         [button {:bs-style "success" :on-click save-function} "Save"]
+         [button {:bs-style "danger" :on-click masavi-form-cancel } "Cancel"]]]]]]]])
 
 
 (defn masavi-add-form-onclick [data-set focus]
-  (if (= nil (revenue-form-validator @data-set))
+  (if (= nil (masavi-form-validator @data-set))
     (let [onres (fn[json] (accountant/navigate! "/masavi"))]
-      (http-post (str serverhost "masavis") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on"))
-
+      (http-post (str serverhost "masavis") onres  (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 (defn masavi-update-form-onclick [data-set focus]
   (if (= nil (masavi-form-validator @data-set))
     (let [onres (fn[data] (accountant/navigate! "/masavi"))]
-      (http-put (str serverhost "masavis/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on"))
-
-
-
-(defn masavi-on-change [event]
-  (let [ele (.getElementById js/document "id")
-        eval (.-value ele)
-        onresp (fn [json]
-                 (let [dt (getdata json)]
-                   (set-key-value :villages dt)))]
-    (set-key-value :villages [])
-    (when-not ( >  1 (.-length eval))
-      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
-
+      (http-put (str serverhost "masavis/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 (defn masavi-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [masavi-template
-           "Khasra Girdwani Add Form"
+           "Masavi Add Form"
            add-data focus
            #(masavi-add-form-onclick add-data focus)])))
 
@@ -1829,15 +1693,15 @@
                              :serialnumber (.-serialnumber dmt)
                              :subdivisionid (.-subdivisionid dmt)
                              :villageid (.-villageid dmt)
+                             ;; :tehsil (.-tehsil dmt)
                              :year (.-year dmt)
                              :racknumber (.-racknumber dmt)
-                             :description (.-description dmt)
-                             :isactive true})
+                             :description (.-description dmt)})
         focus (r/atom nil)]
     (fn [] [masavi-template
-           "masavi Update Form"
-           update-data focus
-           #(masavi-update-form-onclick update-data focus)])))
+            "Masavi Update Form"
+            update-data focus
+            #(masavi-update-form-onclick update-data focus)])))
 
 
 (defn masavi-update[id]
@@ -1848,7 +1712,6 @@
                 (accountant/navigate! "/masavi"))]
     (http-delete (str serverhost "masavis/" id)  onres)))
 
-
 (defroute masavi-add-path "/masavi/add" []
   (if (nil? (get-value! :user)) (accountant/navigate! "/login")
       (let [onres (fn[json](
@@ -1857,26 +1720,24 @@
         (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute masavi-upd-path "/masavi/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [masavi-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :masavis)))])))
+  (let [onres (fn[json]
+                ((set-key-value :villages (getdata json))
+                 (set-page! [masavi-update-template id
+                             (first (filter (fn[obj]
+                                              (=(.-id obj) (.parseInt js/window id)))
+                                            (get-value! :masavis)))])))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
-    (do
-      (http-get-auth (str serverhost "villages") onres)
-      (http-get-auth (str serverhost "subdivisions") sub-res))))
+    (http-get-auth (str serverhost "villages") onres)
+    (http-get-auth (str serverhost "subdivisions") sub-res)))
 
 (defn masavi-add [event]
   (accountant/navigate! "/masavi/add"))
-
-
 
 (defn render-masavi [masavis]
   [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3.box-title "List of masavi"]]
+     [:h3.box-title "List of Masavi Records"]]
     [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
@@ -1888,12 +1749,13 @@
           (when (is-admin-or-super-admin)[:th " "])
           (when (is-admin-or-super-admin)[:th " "])
           [:th "S.No"]
-          [:th "Sub Division Name"]
           [:th "Name of the Village"]
+          [:th "Sub Division Name"]
           ;; [:th "Tehsil"]
           [:th "Year"]
           [:th "Rack Number"]
-          [:th "Description"]]]
+          [:th "Description"]
+         ]]
         [:tbody
          (doall (for [mt masavis]
                   ^{:key (.-id mt)}
@@ -1905,8 +1767,8 @@
                      [:td  [button {:bs-style "danger"
                                     :on-click #(masavi-delete(.-id mt))} "Delete"]])
                    [:td (.-serialnumber mt)]
-                   [:td (.-subdivisionname mt)]
                    [:td (.-villagename mt)]
+                   [:td (.-subdivisionname mt)]
                    ;; [:td (.-tehsil mt)]
                    [:td (.-year mt)]
                    [:td (.-racknumber mt)]
@@ -1914,36 +1776,29 @@
                    ]))]]]
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
 
-
 (defroute masavi-list "/masavi" []
   (let [onres (fn [json]
                 (cond (= (get-status json) 200) (set-authorized-list json :masavis render-masavi)
                       :else (sign-out)))]
-    (set-url "/masavi")
     (set-key-value :is-searched-results false)
     (http-get-auth (str serverhost "masavis?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+
 
 ;; ---------------------------------------------------------
 ;; Consolidation-records
 
-
 (defn consolidation-form-validator [data-set]
   (first (b/validate data-set
                      :serialnumber [[v/required :message "Field is required Must be number"]]
+                     :subdivisionid [[v/required :message "Field is required"]]
+                     :villageid [[v/required :message "Field is required"]]
+                     ;; :tehsil [[v/required :message "Field is required"]]
                      :year [[v/required :message "Field is required Must be number"]
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]])))
-
-(defn consolidation-input-int [id ttype data-set placeholder in-focus]
-  [:input.form-control {:id id
-                        :type ttype
-                        :value (@data-set id)
-                        :placeholder placeholder
-                        :on-change #(swap! data-set assoc id (int (-> % .-target .-value )))
-                        :on-blur  #(reset! in-focus "on")
-                        }])
+                     :description [[v/required :message "Field is required"]]
+                     )))
 
 
 (defn consolidation-input-int-row [id label ttype data-set focus]
@@ -1951,7 +1806,7 @@
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [consolidation-input-int id ttype data-set label input-focus]]
+       [:div.col-sm-6 [input-int id ttype data-set label input-focus]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (consolidation-form-validator @data-set))
                           [:div]
@@ -1973,46 +1828,11 @@
                         [:div])]])))
 
 
-(defn cons-sub-onchange [id val data-set]
-  (let [res (fn [json]
-              (let [dt (getdata json)]
-                (set-key-value :villages dt)))]
-    (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
-        (swap! data-set assoc id (js/parseInt val)))))
-
-(defn cons-sub-sel-tag [id data data-set]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(cons-sub-onchange  id (-> % .-target .-value) data-set)}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-subdivisionname d)])])
-
-(defn cons-form-sub-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [cons-sub-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
-
-(defn cons-villages-sel-tag [id data data-set ]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-villagename d)])])
-
-(defn cons-form-villages-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [cons-villages-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
 (defn consolidation-form-cancel [event]
   (accountant/navigate! "/consolidation"))
+
+(defn consolidation-add [event]
+  (accountant/navigate! "/consolidation/add"))
 
 (defn consolidation-template [doc-name data-set focus save-function]
   [:div.container
@@ -2023,51 +1843,38 @@
      [:div.form-horizontal
       [:div.box-body
        [consolidation-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [cons-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [cons-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       ;; [consolidation-input-row :tehsil "Tehsil" "text" data-set focus]
        [consolidation-input-int-row :year "Year" "text" data-set focus]
        [consolidation-input-row :racknumber "Rack Number" "text" data-set focus]
-       [consolidation-input-row :description "Description" "text" data-set focus]
-       [:div.box-footer
-        [:div.col-sm-8.col-md-offset-5
-         [button-tool-bar
-          [button {:bs-style "success" :on-click save-function} "Save"]
-          [button {:bs-style "danger" :on-click consolidation-form-cancel } "Cancel"]]]
-        ]]]]]])
-
+       [consolidation-input-row :description "Description" "text" data-set focus]]
+      [:div.box-footer
+       [:div.col-sm-8.col-md-offset-5
+        [button-tool-bar
+         [button {:bs-style "success" :on-click save-function} "Save"]
+         [button {:bs-style "danger" :on-click consolidation-form-cancel } "Cancel"]]]
+       ]]]]])
 
 
 (defn consolidation-add-form-onclick [data-set focus]
-  (if (= nil (revenue-form-validator @data-set))
+  (if (= nil (consolidation-form-validator @data-set))
     (let [onres (fn[json] (accountant/navigate! "/consolidation"))]
-      (http-post (str serverhost "consolidations") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on"))
+      (http-post (str serverhost "consolidations") onres  (.serialize (Serializer.) (clj->js @data-set))))
+  (reset! focus "on")))
 
 
 (defn consolidation-update-form-onclick [data-set focus]
   (if (= nil (consolidation-form-validator @data-set))
     (let [onres (fn[data] (accountant/navigate! "/consolidation"))]
-      (http-put (str serverhost "consolidations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on"))
-
-
-
-(defn consolidation-on-change [event]
-  (let [ele (.getElementById js/document "id")
-        eval (.-value ele)
-        onresp (fn [json]
-                 (let [dt (getdata json)]
-                   (set-key-value :villages dt)))]
-    (set-key-value :villages [])
-    (when-not ( >  1 (.-length eval))
-      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
-
+      (http-put (str serverhost "consolidations/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 (defn consolidation-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [consolidation-template
-           "Khasra Girdwani Add Form"
+           "Consolidation Add Form"
            add-data focus
            #(consolidation-add-form-onclick add-data focus)])))
 
@@ -2076,15 +1883,15 @@
                              :serialnumber (.-serialnumber dmt)
                              :subdivisionid (.-subdivisionid dmt)
                              :villageid (.-villageid dmt)
+                             ;; :tehsil (.-tehsil dmt)
                              :year (.-year dmt)
                              :racknumber (.-racknumber dmt)
-                             :description (.-description dmt)
-                             :isactive true})
+                             :description (.-description dmt)})
         focus (r/atom nil)]
     (fn [] [consolidation-template
-           "consolidation Update Form"
-           update-data focus
-           #(consolidation-update-form-onclick update-data focus)])))
+            "Consolidation Update Form"
+            update-data focus
+            #(consolidation-update-form-onclick update-data focus)])))
 
 
 (defn consolidation-update[id]
@@ -2095,78 +1902,70 @@
                 (accountant/navigate! "/consolidation"))]
     (http-delete (str serverhost "consolidations/" id)  onres)))
 
-
 (defroute consolidation-add-path "/consolidation/add" []
   (if (nil? (get-value! :user)) (accountant/navigate! "/login")
-      (let [onres (fn[json](
-                           (set-key-value :subdivisions (getdata json))
-                           (set-page! [consolidation-add-template])))]
+      (let [onres (fn[json]
+                    ((set-key-value :subdivisions (getdata json))
+                     (set-page! [consolidation-add-template])))]
         (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute consolidation-upd-path "/consolidation/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [consolidation-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :consolidations)))])))
-        sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
-    (do
-      (http-get-auth (str serverhost "villages") onres)
-      (http-get-auth (str serverhost "subdivisions") sub-res))))
-
-(defn consolidation-add [event]
-  (accountant/navigate! "/consolidation/add"))
-
-
+  (let [onres (fn[json] (set-key-value :villages (getdata json)))
+        sub-res (fn[json] (set-key-value :subdivisions (getdata json)))]
+    (http-get-auth (str serverhost "villages") onres)
+    (http-get-auth (str serverhost "subdivisions") sub-res)
+    (set-page! [consolidation-update-template id
+                (first (filter (fn[obj]
+                                 (=(.-id obj) (.parseInt js/window id)))
+                               (get-value! :consolidations)))])))
 
 (defn render-consolidation [consolidations]
   [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3.box-title "List of consolidation"]]
+     [:h3.box-title "List of Consolidation Records"]]
     [:div.box-body
-      [:div.form-group
-       [:input {:type "button" :value "Add"
-                :class "btn btn-primary" :on-click consolidation-add}]]
-      [:div.table-responsive
-       [:table {:class "table table-bordered table-striped dataTable"}
-        [:thead
-         [:tr
-          (when (is-admin-or-super-admin)[:th " "])
-          (when (is-admin-or-super-admin)[:th " "])
-          [:th "S.No"]
-          [:th "Sub Division Name"]
-          [:th "Name of the Village"]
-          ;; [:th "Tehsil"]
-          [:th "Year"]
-          [:th "Rack Number"]
-          [:th "Description"]]]
-        [:tbody
-         (doall (for [mt consolidations]
-                  ^{:key (.-id mt)}
-                  [:tr
-                   (when (is-admin-or-super-admin)
-                     [:td [button {:bs-style "success"
-                                   :on-click  #(consolidation-update(.-id mt))} "Update"]])
-                   (when (is-admin-or-super-admin)
-                     [:td  [button {:bs-style "danger"
-                                    :on-click #(consolidation-delete(.-id mt))} "Delete"]])
-                   [:td (.-serialnumber mt)]
-                   [:td (.-subdivisionname mt)]
-                   [:td (.-villagename mt)]
-                   ;; [:td (.-tehsil mt)]
-                   [:td (.-year mt)]
-                   [:td (.-racknumber mt)]
-                   [:td (.-description mt)]
-                   ]))]]]
+     [:div.form-group
+      [:input {:type "button" :value "Add"
+               :class "btn btn-primary" :on-click consolidation-add}]]
+     [:div.table-responsive
+      [:table {:class "table table-bordered table-striped dataTable"}
+       [:thead
+        [:tr
+         (when (is-admin-or-super-admin)[:th " "])
+         (when (is-admin-or-super-admin)[:th " "])
+         [:th "S.No"]
+         [:th "Name of the Village"]
+         [:th "Sub Division Name"]
+         ;; [:th "Tehsil"]
+         [:th "Year"]
+         [:th "Rack Number"]
+         [:th "Description"]
+         ]]
+       [:tbody
+        (doall (for [mt consolidations]
+                 ^{:key (.-id mt)}
+                 [:tr
+                  (when (is-admin-or-super-admin)
+                    [:td [button {:bs-style "success"
+                                  :on-click  #(consolidation-update(.-id mt))} "Update"]])
+                  (when (is-admin-or-super-admin)
+                    [:td  [button {:bs-style "danger"
+                                   :on-click #(consolidation-delete(.-id mt))} "Delete"]])
+                  [:td (.-serialnumber mt)]
+                  [:td (.-villagename mt)]
+                  [:td (.-subdivisionname mt)]
+                  ;; [:td (.-tehsil mt)]
+                  [:td (.-year mt)]
+                  [:td (.-racknumber mt)]
+                  [:td (.-description mt)]
+                  ]))]]]
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
-
 
 (defroute consolidation-list "/consolidation" []
   (let [onres (fn [json]
                 (cond (= (get-status json) 200) (set-authorized-list json :consolidations render-consolidation)
                       :else (sign-out)))]
-    (set-url "/consolidation")
     (set-key-value :is-searched-results false)
     (http-get-auth (str serverhost "consolidations?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
@@ -2174,32 +1973,25 @@
 ;; ---------------------------------------------------------
 ;; fieldbook-records
 
-
 (defn fieldbook-form-validator [data-set]
   (first (b/validate data-set
                      :serialnumber [[v/required :message "Field is required Must be number"]]
+                     :subdivisionid [[v/required :message "Field is required"]]
+                     :villageid [[v/required :message "Field is required"]]
+                     ;; :tehsil [[v/required :message "Field is required"]]
                      :year [[v/required :message "Field is required Must be number"]
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]])))
-
-(defn fieldbook-input-int [id ttype data-set placeholder in-focus]
-  [:input.form-control {:id id
-                        :type ttype
-                        :value (@data-set id)
-                        :placeholder placeholder
-                        :on-change #(swap! data-set assoc id (int (-> % .-target .-value )))
-                        :on-blur  #(reset! in-focus "on")
-                        }])
-
+                     :description [[v/required :message "Field is required"]]
+                     )))
 
 (defn fieldbook-input-int-row [id label ttype data-set focus]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [fieldbook-input-int id ttype data-set label input-focus]]
+       [:div.col-sm-6 [input-int id ttype data-set label input-focus]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (fieldbook-form-validator @data-set))
                           [:div]
@@ -2220,47 +2012,9 @@
                            [:b (str (first ((fieldbook-form-validator @data-set) id)))]])
                         [:div])]])))
 
-
-(defn fb-sub-onchange [id val data-set]
-  (let [res (fn [json]
-              (let [dt (getdata json)]
-                (set-key-value :villages dt)))]
-    (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
-        (swap! data-set assoc id (js/parseInt val)))))
-
-(defn fb-sub-sel-tag [id data data-set]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(fb-sub-onchange  id (-> % .-target .-value) data-set)}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-subdivisionname d)])])
-
-(defn fb-form-sub-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [fb-sub-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
-
-(defn fb-villages-sel-tag [id data data-set ]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-villagename d)])])
-
-(defn fb-form-villages-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [fb-villages-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
 (defn fieldbook-form-cancel [event]
   (accountant/navigate! "/fieldbook"))
+
 
 (defn fieldbook-template [doc-name data-set focus save-function]
   [:div.container
@@ -2271,51 +2025,35 @@
      [:div.form-horizontal
       [:div.box-body
        [fieldbook-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [fb-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [fb-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       ;; [fieldbook-input-row :tehsil "Tehsil" "text" data-set focus]
        [fieldbook-input-int-row :year "Year" "text" data-set focus]
        [fieldbook-input-row :racknumber "Rack Number" "text" data-set focus]
-       [fieldbook-input-row :description "Description" "text" data-set focus]
-       [:div.box-footer
-        [:div.col-sm-8.col-md-offset-5
-         [button-tool-bar
-          [button {:bs-style "success" :on-click save-function} "Save"]
-          [button {:bs-style "danger" :on-click fieldbook-form-cancel } "Cancel"]]]
-        ]]]]]])
-
-
+       [fieldbook-input-row :description "Description" "text" data-set focus]]
+      [:div.box-footer
+       [:div.col-sm-8.col-md-offset-5
+        [button-tool-bar
+         [button {:bs-style "success" :on-click save-function} "Save"]
+         [button {:bs-style "danger" :on-click fieldbook-form-cancel } "Cancel"]]] ]]]]])
 
 (defn fieldbook-add-form-onclick [data-set focus]
-  (if (= nil (revenue-form-validator @data-set))
+  (if (= nil (fieldbook-form-validator @data-set))
     (let [onres (fn[json] (accountant/navigate! "/fieldbook"))]
-      (http-post (str serverhost "fieldbooks") onres  (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on"))
-
+      (http-post (str serverhost "fieldbooks") onres  (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 (defn fieldbook-update-form-onclick [data-set focus]
   (if (= nil (fieldbook-form-validator @data-set))
     (let [onres (fn[data] (accountant/navigate! "/fieldbook"))]
-      (http-put (str serverhost "fieldbooks/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set)))))
-  (reset! focus "on"))
-
-
-
-(defn fieldbook-on-change [event]
-  (let [ele (.getElementById js/document "id")
-        eval (.-value ele)
-        onresp (fn [json]
-                 (let [dt (getdata json)]
-                   (set-key-value :villages dt)))]
-    (set-key-value :villages [])
-    (when-not ( >  1 (.-length eval))
-      (http-get-auth (str serverhost "villages/search?name=" eval) onresp))))
-
+      (http-put (str serverhost "fieldbooks/" (:id @data-set)) onres (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
 
 (defn fieldbook-add-template []
   (let [add-data (r/atom {:isactive true})
         focus (r/atom nil)]
     (fn [] [fieldbook-template
-           "Khasra Girdwani Add Form"
+           "Field Book Add Form"
            add-data focus
            #(fieldbook-add-form-onclick add-data focus)])))
 
@@ -2324,15 +2062,15 @@
                              :serialnumber (.-serialnumber dmt)
                              :subdivisionid (.-subdivisionid dmt)
                              :villageid (.-villageid dmt)
+                             ;; :tehsil (.-tehsil dmt)
                              :year (.-year dmt)
                              :racknumber (.-racknumber dmt)
-                             :description (.-description dmt)
-                             :isactive true})
+                             :description (.-description dmt)})
         focus (r/atom nil)]
     (fn [] [fieldbook-template
-           "fieldbook Update Form"
-           update-data focus
-           #(fieldbook-update-form-onclick update-data focus)])))
+            "Field Book Update Form"
+            update-data focus
+            #(fieldbook-update-form-onclick update-data focus)])))
 
 
 (defn fieldbook-update[id]
@@ -2343,7 +2081,6 @@
                 (accountant/navigate! "/fieldbook"))]
     (http-delete (str serverhost "fieldbooks/" id)  onres)))
 
-
 (defroute fieldbook-add-path "/fieldbook/add" []
   (if (nil? (get-value! :user)) (accountant/navigate! "/login")
       (let [onres (fn[json](
@@ -2352,26 +2089,23 @@
         (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute fieldbook-upd-path "/fieldbook/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [fieldbook-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :fieldbooks)))])))
+  (let [onres (fn[json] (set-key-value :villages (getdata json)))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
-    (do
-      (http-get-auth (str serverhost "villages") onres)
-      (http-get-auth (str serverhost "subdivisions") sub-res))))
+    (http-get-auth (str serverhost "subdivisions") onres)
+    (http-get-auth (str serverhost "subdivisions") sub-res)
+    (set-page! [fieldbook-update-template id
+                (first (filter (fn[obj]
+                                 (=(.-id obj) (.parseInt js/window id)))
+                               (get-value! :fieldbooks)))])))
 
 (defn fieldbook-add [event]
   (accountant/navigate! "/fieldbook/add"))
-
-
 
 (defn render-fieldbook [fieldbooks]
   [:div.col-md-12
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h3.box-title "List of fieldbook"]]
+     [:h3.box-title "List of Field Book Records"]]
     [:div.box-body
       [:div.form-group
        [:input {:type "button" :value "Add"
@@ -2380,41 +2114,40 @@
        [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
-          (when (is-admin-or-super-admin)[:th " "])
-          (when (is-admin-or-super-admin)[:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
+          (when (is-admin-or-super-admin) [:th " "])
           [:th "S.No"]
-          [:th "Sub Division Name"]
           [:th "Name of the Village"]
+          [:th "Sub Division Name"]
           ;; [:th "Tehsil"]
           [:th "Year"]
           [:th "Rack Number"]
-          [:th "Description"]]]
+          [:th "Description"]
+          ]]
         [:tbody
-         (doall (for [mt fieldbooks]
-                  ^{:key (.-id mt)}
-                  [:tr
-                   (when (is-admin-or-super-admin)
-                     [:td [button {:bs-style "success"
-                                   :on-click  #(fieldbook-update(.-id mt))} "Update"]])
-                   (when (is-admin-or-super-admin)
-                     [:td  [button {:bs-style "danger"
-                                    :on-click #(fieldbook-delete(.-id mt))} "Delete"]])
-                   [:td (.-serialnumber mt)]
-                   [:td (.-subdivisionname mt)]
-                   [:td (.-villagename mt)]
-                   ;; [:td (.-tehsil mt)]
-                   [:td (.-year mt)]
-                   [:td (.-racknumber mt)]
-                   [:td (.-description mt)]
-                   ]))]]]
+         (doall(for [mt fieldbooks]
+                 ^{:key (.-id mt)}
+                 [:tr
+                  (when (is-admin-or-super-admin)
+                    [:td [button {:bs-style "success"
+                                  :on-click  #(fieldbook-update(.-id mt))} "Update"]])
+                  (when (is-admin-or-super-admin)
+                    [:td  [button {:bs-style "danger"
+                                   :on-click #(fieldbook-delete(.-id mt))} "Delete"]])
+                  [:td (.-serialnumber mt)]
+                  [:td (.-villagename mt)]
+                  [:td (.-subdivisionname mt)]
+                  ;; [:td (.-tehsil mt)]
+                  [:td (.-year mt)]
+                  [:td (.-racknumber mt)]
+                  [:td (.-description mt)]
+                  ]))]]]
        [:div.col-sm-6.col-md-offset-5 [shared-state 0]]]]])
-
 
 (defroute fieldbook-list "/fieldbook" []
   (let [onres (fn [json]
                 (cond (= (get-status json) 200) (set-authorized-list json :fieldbooks render-fieldbook)
                       :else (sign-out)))]
-    (set-url "/fieldbook")
     (set-key-value :is-searched-results false)
     (http-get-auth (str serverhost "fieldbooks?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
@@ -2566,14 +2299,11 @@
                 (accountant/navigate! "/misc"))]
     (http-delete (str serverhost "miscs/" id)  onres)))
 
-
-
-
 (defroute misc-add-path "/misc/add" []
   (if (nil? (get-value! :user)) (accountant/navigate! "/login")
       (let [onres (fn[json](
-                           (set-key-value :villages (getdata json))
-                           (set-page! [misc-add-template])))]
+                            (set-key-value :villages (getdata json))
+                            (set-page! [misc-add-template])))]
         (http-get-auth (str serverhost "villages") onres))))
 
 (defroute misc-upd-path "/misc/update/:id" [id]
@@ -2676,23 +2406,6 @@
 
 (defn o2register-form-cancel [event]
   (accountant/navigate! "/o2register"))
-
-(defn o2num-sel-tag [id data data-set ]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(swap! data-set assoc id  (-> % .-target .-value))}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key  d}
-     [:option {:value d} d])])
-
-(defn o2-form-o2num-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [o2num-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
-
 
 (defn o2-subdiv-sel-tag [id data data-set ]
   [:select.form-control {:id id
@@ -2848,7 +2561,8 @@
 
 (defroute o2register-list "/o2register" []
   (let [onres (fn [json]
-                (cond (= (get-status json) 200) (set-authorized-list json :o2registers render-o2register)
+                (cond (= (get-status json) 200)
+                      (set-authorized-list json :o2registers render-o2register)
                       :else (sign-out)))]
     (set-key-value :is-searched-results false)
     (http-get-auth (str serverhost "o2registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
@@ -2863,7 +2577,7 @@
                      :o4number [[v/required :message "Field is required"]]
                      :villageid [[v/required :message "Field is required"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     ;; :description [[v/required :message "Field is required"]]
+                     :description [[v/required :message "Field is required"]]
                      )))
 
 (defn o4register-input-row [id label ttype data-set focus]
@@ -2896,62 +2610,6 @@
   (accountant/navigate! "/o4register"))
 
 
-
-(defn o4num-sel-tag [id data data-set ]
-  [:input.form-control {:id id
-                        :value (@data-set id)
-                        :on-change #()}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key  (.-id d)}
-     [:option {:value (.-o4number d)} (.-o4number d)])])
-
-(defn o4-form-o4num-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [o4num-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
-(defn o4-sub-onchange [id val data-set]
-  (let [res (fn [json]
-              (let [dt (getdata json)]
-                (set-key-value :villages dt)))]
-    (do (http-get-auth (str serverhost "subdivisions/" val  "/villages") res)
-        (swap! data-set assoc id (js/parseInt val)))))
-
-
-(defn o4-sub-sel-tag [id data data-set]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(rev-sub-onchange  id (-> % .-target .-value) data-set)}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-subdivisionname d)])])
-
-(defn o4-form-sub-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [o4-sub-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
-
-(defn o4-villages-sel-tag [id data data-set ]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(swap! data-set assoc id (js/parseInt (-> % .-target .-value)))}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key (.-id d) }
-     [:option {:value (.-id d)} (.-villagename d)])])
-
-(defn o4-form-villages-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [o4-villages-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
-
 (defn o4register-template [doc-name data-set focus save-function]
   [:div.container
    [:div.col-md-12
@@ -2962,8 +2620,8 @@
       [:div.box-body
        [o4register-input-int-row :serialnumber "Serial Number" "text" data-set focus ]
        [o4register-input-row :o4number "O4 Number" "text" data-set focus]
-       [o4-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [o4-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
        [o4register-input-row :racknumber "Rack Number" "text" data-set focus]
        [o4register-input-row :description "Description" "text" data-set focus]
        ]
@@ -3090,10 +2748,12 @@
 
 (defroute o4register-list "/o4register" []
   (let [onres (fn [json]
-                (cond (= (get-status json) 200) (set-authorized-list json :o4registers render-o4register)
+                (cond (= (get-status json) 200)
+                      (set-authorized-list json :o4registers render-o4register)
                       :else (sign-out)))]
     (set-key-value :is-searched-results false)
-    (http-get-auth (str serverhost "o4registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
+    (http-get-auth
+     (str serverhost "o4registers?pageIndex="(dec (get-value! :current-page))"&pageSize=10") onres)))
 
 
 ;; ---------------------------------------------------------
@@ -3113,7 +2773,7 @@
                      ;;              [date-year-after? :message "Year must greater than 1900"]
                      ;;              [date-year-before? :message "Year must less than 9999"]]
                      :racknumber  [[v/required :message "Field is required"]]
-                     ;;:description [[v/required :message "Field is required"]]
+                     ;; :description [[v/required :message "Field is required"]]
                      )))
 
 (defn o6register-input-row [id label ttype data-set focus]
@@ -3145,22 +2805,6 @@
 
 (defn o6register-form-cancel [event]
   (accountant/navigate! "/o6register"))
-
-(defn o6num-sel-tag [id data data-set ]
-  [:select.form-control {:id id
-                         :value (@data-set id)
-                         :on-change #(swap! data-set assoc id  (-> % .-target .-value))}
-   [:option {:value 0} "--Select--"]
-   (for [d  data]
-     ^{:key  (.-id d)}
-     [:option {:value (.-o6number d)} (.-o6number d)])])
-
-
-(defn o6-form-o6num-sel [label id opt-data data-set]
-  [:div.form-group
-   [:label.col-sm-3.control-label label]
-   [:div.col-sm-6 [o6num-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
 
 (defn o6-subdiv-sel-tag [id data data-set ]
   [:select.form-control {:id id
