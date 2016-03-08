@@ -440,6 +440,9 @@
                        :dateofdecision [[v/required :message "Field is required"]
                                         [date-year-after? :message "Year must greater than 1900"]
                                         [date-year-before? :message "Year must less than 9999"]]
+                       :villageid [[v/required :message "Field is required"]]
+                       :subdivisionid  [[v/required :message "Field is required"]]
+                       :districtid  [[v/required :message "Field is required"]]
                        :title [[v/required :message "Field is required"]]
                        :khasranumber [[v/required :message "Field is required"]]
                        :khatakhatuninumber [[v/required :message "Field is required"]]
@@ -515,11 +518,16 @@
      ^{:key (.-id d)}
      [:option {:value (.-id d)} (.-name d)])])
 
-(defn form-dist-sel [label id opt-data data-set]
+(defn form-dist-sel [label id opt-data data-set focus]
   [:div.form-group
    [:label.col-sm-3.control-label label]
    [:div.col-sm-6 [dist-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
+   [:div.col-sm-3 (if @focus
+                    (if (= nil (form-validator @data-set))
+                      [:div]
+                      [:div {:style  {:color "red"}}
+                       [:b (str (first ((form-validator @data-set) id)))]])
+                    [:div])]])
 
 (defn sub-onchange [id val data-set]
   (let [res (fn [json]
@@ -537,12 +545,16 @@
      ^{:key (.-id d) }
      [:option {:value (.-id d)} (.-subdivisionname d)])])
 
-(defn form-sub-sel [label id opt-data data-set]
+(defn form-sub-sel [label id opt-data data-set focus]
   [:div.form-group
    [:label.col-sm-3.control-label label]
    [:div.col-sm-6 [sub-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
-
+   [:div.col-sm-3 (if @focus
+                    (if (= nil (form-validator @data-set))
+                      [:div]
+                      [:div {:style  {:color "red"}}
+                       [:b (str (first ((form-validator @data-set) id)))]])
+                    [:div])]])
 
 (defn villages-sel-tag [id data data-set ]
   [:select.form-control {:id id
@@ -553,11 +565,16 @@
      ^{:key (.-id d) }
      [:option {:value (.-id d)} (.-villagename d)])])
 
-(defn form-villages-sel [label id opt-data data-set]
+(defn form-villages-sel [label id opt-data data-set focus]
   [:div.form-group
    [:label.col-sm-3.control-label label]
    [:div.col-sm-6 [villages-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
+   [:div.col-sm-3 (if @focus
+                    (if (= nil (form-validator @data-set))
+                      [:div]
+                      [:div {:style  {:color "red"}}
+                       [:b (str (first ((form-validator @data-set) id)))]])
+                    [:div])]])
 
 
 (defn form-cancel [event]
@@ -630,9 +647,9 @@
        [form-input-element :khasranumber "Khasra Number" "text" data-set focus false]
        [form-input-element :area "Area" "text" data-set focus false]
        [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus false]
-       [form-dist-sel "District" :districtid (:districts @storage) data-set]
-       [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [form-dist-sel "District" :districtid (:districts @storage) data-set focus]
+       [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set focus]
+       [form-villages-sel "Village Name" :villageid (:villages @storage) data-set focus]
        [form-input-element :o2number "O2 Number" "text" data-set focus false]
        [form-input-element :o4number "O4 Number" "text" data-set focus false ]
        [form-input-element :o6number "O6 Number" "text" data-set focus false]
@@ -643,10 +660,12 @@
        [:div.col-sm-12.col-md-offset-5
         [button-tool-bar
          [button {:bs-style "success" :on-click save-function} "Save"]
-         (when (nil? (:id @data-set)) [button {:bs-style "info" :on-click #((reset! data-set {:isactive true})
-                                                                            (reset-mut-combo-boxes))} "Refresh"])
+         (when (nil? (:id @data-set))
+           [button {:bs-style "info"
+                    :on-click #((reset! data-set {:isactive true})
+                                (reset-mut-combo-boxes))} "Refresh"])
          [button {:bs-style "danger" :on-click form-cancel } "Cancel"]]]]
-       ;; [:span (str @data-set)]
+        ;; [:span (str @data-set)]
        ]]]])
 
 (defn receiveddate-validator [data-set]
@@ -723,9 +742,9 @@
        [form-input-element :khasranumber "Khasra Number" "text" data-set focus false]
        [form-input-element :area "Area" "text" data-set focus false]
        [form-input-element :khatakhatuninumber "Khata Khatuni Number" "text" data-set focus false]
-       [form-dist-sel "District" :districtid (:districts @storage) data-set]
-       [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [form-dist-sel "District" :districtid (:districts @storage) data-set focus]
+       [form-sub-sel "Sub-division Name" :subdivisionid (:subdivisions @storage) data-set focus]
+       [form-villages-sel "Village Name" :villageid (:villages @storage) data-set focus]
        [form-input-element :o2number "O2 Number" "text" data-set focus false]
        [form-input-element :o4number "O4 Number" "text" data-set focus false]
        [form-input-element :o6number "O6 Number" "text" data-set focus false]
@@ -759,25 +778,29 @@
 (defn add-form-onclick [data-set focus]
   (if (= nil (@data-set :senddate))
     (if (= nil (form-validator @data-set))
-      (let [onres (fn[json] (swap! data-set dissoc
-                                 :mutationnumber  :khasranumber  :khatakhatuninumber
-                                 :nameofthesecondparty :nameofthefirstparty
-                                 :nameofpo :o6number :o2number :o4number
-                                 :title :dateofdecision :dateofinstitution
-                                 :racknumber :area :senddate
-                                 :remarks
-                                 ))]
+      (let [onres (fn[json] ((swap! data-set dissoc
+                                    :mutationnumber  :khasranumber  :khatakhatuninumber
+                                    :nameofthesecondparty :nameofthefirstparty
+                                    :nameofpo :title :dateofdecision :dateofinstitution
+                                    :racknumber :area :senddate
+                                    :remarks)
+                             (swap! data-set assoc
+                                    :o2number ""
+                                    :o4number ""
+                                    :o6number "")))]
         (http-post (str serverhost "mutations") onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set)))))
       (reset! focus "on"))
     (when (= nil (form-validator @data-set) (senddate-validator @data-set))
-      (let [onres (fn[json] (swap! data-set dissoc
-                                   :mutationnumber  :khasranumber  :khatakhatuninumber
-                                   :nameofthesecondparty :nameofthefirstparty
-                                   :nameofpo :o6number :o2number :o4number
-                                   :title :dateofdecision :dateofinstitution
-                                   :racknumber :area :senddate
-                                   :remarks
-                                   ))]
+      (let [onres (fn[json] ((swap! data-set dissoc
+                                    :mutationnumber  :khasranumber  :khatakhatuninumber
+                                    :nameofthesecondparty :nameofthefirstparty
+                                    :nameofpo :title :dateofdecision :dateofinstitution
+                                    :racknumber :area :senddate
+                                    :remarks)
+                             (swap! data-set assoc
+                                    :o2number ""
+                                    :o4number ""
+                                    :o6number "")))]
         (http-post (str serverhost "mutations") onres  (.serialize (Serializer.) (clj->js (map-mutation-data @data-set))))))))
 
 (defn update-form-onclick [data-set focus]
@@ -807,7 +830,10 @@
           (reset! focus "on"))))))
 
 (defn mutation-add-template []
-  (let [add-data (r/atom {:isactive true})
+  (let [add-data (r/atom {:isactive true
+                          :o2number ""
+                          :o4number ""
+                          :o6number ""})
         focus (r/atom nil)]
     (fn [] [add-mutation-template "Mutation Add Form" add-data focus #(add-form-onclick add-data focus) false])))
 
@@ -1189,8 +1215,11 @@
                      :year [[v/required :message "Field is required Must be number"]
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
+                     :subdivisionid [[v/required :message "Field is required"]]
+                     :villageid [[v/required :message "Field is required"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]])))
+                     ;; :description [[v/required :message "Field is required"]]
+                     )))
 
 (defn input-int [id ttype data-set placeholder in-focus]
   [:input.form-control {:id id
@@ -1245,11 +1274,16 @@
      ^{:key (.-id d) }
      [:option {:value (.-id d)} (.-subdivisionname d)])])
 
-(defn all-form-sub-sel [label id opt-data data-set]
+(defn all-form-sub-sel [label id opt-data data-set validator focus]
   [:div.form-group
    [:label.col-sm-3.control-label label]
    [:div.col-sm-6 [all-sub-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
+   [:div.col-sm-3  (if @focus
+                     (if (= nil (validator @data-set))
+                       [:div]
+                       [:div {:style  {:color "red"}}
+                        [:b (str (first ((validator @data-set) id)))]])
+                     [:div])]])
 
 
 (defn all-villages-sel-tag [id data data-set ]
@@ -1261,11 +1295,16 @@
      ^{:key (.-id d) }
      [:option {:value (.-id d)} (.-villagename d)])])
 
-(defn all-form-villages-sel [label id opt-data data-set]
+(defn all-form-villages-sel [label id opt-data data-set validator focus]
   [:div.form-group
    [:label.col-sm-3.control-label label]
    [:div.col-sm-6 [all-villages-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
+   [:div.col-sm-3  (if @focus
+                     (if (= nil (validator @data-set))
+                       [:div]
+                       [:div {:style  {:color "red"}}
+                        [:b (str (first ((validator @data-set) id)))]])
+                     [:div])]])
 
 (defn revenue-form-cancel [event]
   (accountant/navigate! "/revenue"))
@@ -1279,8 +1318,8 @@
      [:div.form-horizontal
       [:div.box-body
        [revenue-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set revenue-form-validator focus]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set revenue-form-validator focus]
        [revenue-input-int-row :year "Year" "text" data-set focus]
        [revenue-input-row :racknumber "Rack Number" "text" data-set focus]
        [revenue-input-row :description "Description" "text" data-set focus]]
@@ -1426,7 +1465,7 @@
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]]
+                     ;; :description [[v/required :message "Field is required"]]
                      )))
 
 (defn khasragirdwani-input-row [id label ttype data-set focus]
@@ -1459,7 +1498,6 @@
 (defn khasragirdwani-form-cancel [event]
   (accountant/navigate! "/khasragirdwani"))
 
-
 (defn khasragirdwani-template [doc-name data-set focus save-function]
   [:div.container
    [:div.col-md-12
@@ -1469,8 +1507,8 @@
      [:div.form-horizontal
       [:div.box-body
        [khasragirdwani-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set khasragirdwani-form-validator focus]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set khasragirdwani-form-validator focus]
        ;; [khasragirdwani-input-row :tehsil "Tehsil" "text" data-set focus]
        [khasragirdwani-input-int-row :year "Year" "text" data-set focus]
        [khasragirdwani-input-row :racknumber "Rack Number" "text" data-set focus]
@@ -1613,7 +1651,7 @@
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]]
+                     ;; :description [[v/required :message "Field is required"]]
                      )))
 
 (defn masavi-input-int-row [id label ttype data-set focus]
@@ -1654,8 +1692,8 @@
      [:div.form-horizontal
       [:div.box-body
        [masavi-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set masavi-form-validator focus]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set masavi-form-validator focus]
        ;; [masavi-input-row :tehsil "Tehsil" "text" data-set focus]
        [masavi-input-int-row :year "Year" "text" data-set focus]
        [masavi-input-row :racknumber "Rack Number" "text" data-set focus]
@@ -1797,7 +1835,7 @@
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]]
+                     ;; :description [[v/required :message "Field is required"]]
                      )))
 
 
@@ -1843,8 +1881,8 @@
      [:div.form-horizontal
       [:div.box-body
        [consolidation-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set consolidation-form-validator focus]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set consolidation-form-validator focus]
        ;; [consolidation-input-row :tehsil "Tehsil" "text" data-set focus]
        [consolidation-input-int-row :year "Year" "text" data-set focus]
        [consolidation-input-row :racknumber "Rack Number" "text" data-set focus]
@@ -1983,7 +2021,7 @@
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]]
+                     ;; :description [[v/required :message "Field is required"]]
                      )))
 
 (defn fieldbook-input-int-row [id label ttype data-set focus]
@@ -2025,8 +2063,8 @@
      [:div.form-horizontal
       [:div.box-body
        [fieldbook-input-int-row :serialnumber "Serial Number" "text" data-set focus]
-       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set fieldbook-form-validator focus]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set fieldbook-form-validator focus]
        ;; [fieldbook-input-row :tehsil "Tehsil" "text" data-set focus]
        [fieldbook-input-int-row :year "Year" "text" data-set focus]
        [fieldbook-input-row :racknumber "Rack Number" "text" data-set focus]
@@ -2416,11 +2454,16 @@
      ^{:key (.-id d) }
      [:option {:value (.-subdivisionname d)} (.-subdivisionname d)])])
 
-(defn o2-form-subdiv-sel [label id opt-data data-set]
+(defn o2-form-subdiv-sel [label id opt-data data-set focus]
   [:div.form-group
    [:label.col-sm-3.control-label label]
    [:div.col-sm-6 [o2-subdiv-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
+   [:div.col-sm-3  (if  @focus
+                     (if (= nil (o2register-form-validator @data-set))
+                       [:div]
+                       [:div {:style  {:color "red"}}
+                        [:b (str (first ((o2register-form-validator @data-set) id)))]])
+                     [:div])]])
 
 (defn o2register-template [doc-name data-set focus save-function]
   [:div.container
@@ -2433,7 +2476,7 @@
        [o2register-input-row :o2number "O2 Number" "text" data-set focus]
        [o2register-input-row :startingdate "Starting Date" "date" data-set focus]
        [o2register-input-row :endingdate "Ending Date" "date" data-set focus]
-       [o2-form-subdiv-sel "Sub Division Name" :subdivisionname (:subdivisions @storage) data-set]
+       [o2-form-subdiv-sel "Sub Division Name" :subdivisionname (:subdivisions @storage) data-set focus]
        [o2register-input-row :racknumber "Rack Number" "text" data-set focus]
        [o2register-input-row :description "Description" "text" data-set focus]
        ;; [:div [:spn (str @data-set)]]
@@ -2577,7 +2620,7 @@
                      :o4number [[v/required :message "Field is required"]]
                      :villageid [[v/required :message "Field is required"]]
                      :racknumber [[v/required :message "Field is required"]]
-                     :description [[v/required :message "Field is required"]]
+                     ;; :description [[v/required :message "Field is required"]]
                      )))
 
 (defn o4register-input-row [id label ttype data-set focus]
@@ -2620,8 +2663,8 @@
       [:div.box-body
        [o4register-input-int-row :serialnumber "Serial Number" "text" data-set focus ]
        [o4register-input-row :o4number "O4 Number" "text" data-set focus]
-       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set]
-       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set]
+       [all-form-sub-sel "Sub Division Name" :subdivisionid (:subdivisions @storage) data-set o4register-form-validator focus]
+       [all-form-villages-sel "Village Name" :villageid (:villages @storage) data-set o4register-form-validator focus]
        [o4register-input-row :racknumber "Rack Number" "text" data-set focus]
        [o4register-input-row :description "Description" "text" data-set focus]
        ]
@@ -2761,6 +2804,7 @@
 
 (defn o6register-form-validator [data-set]
   (first (b/validate data-set
+                     :o6number  [[v/required :message "Field is required"]]
                      :subdivisionname [[v/required :message "Field is required"]]
                      :year [[v/required :message "Field is required"]
                             [year-after? :message "Year must greater than 1900"]
@@ -2815,11 +2859,16 @@
      ^{:key (.-id d) }
      [:option {:value (.-subdivisionname d)} (.-subdivisionname d)])])
 
-(defn o6-form-subdiv-sel [label id opt-data data-set]
+(defn o6-form-subdiv-sel [label id opt-data data-set focus]
   [:div.form-group
    [:label.col-sm-3.control-label label]
    [:div.col-sm-6 [o6-subdiv-sel-tag id opt-data data-set]]
-   [:div.col-sm-3 [:div]]])
+   [:div.col-sm-3  (if @focus
+                     (if (= nil (o6register-form-validator @data-set))
+                       [:div]
+                       [:div {:style  {:color "red"}}
+                        [:b (str (first ((o6register-form-validator @data-set) id)))]])
+                     [:div])]])
 
 
 (defn o6register-template [doc-name data-set focus save-function]
@@ -2835,7 +2884,7 @@
        [o6register-input-row :misalnumber "Misal Number" "text" data-set focus]
        [o6register-input-row :startingdate "Starting Date" "date" data-set focus]
        [o6register-input-row :endingdate "Ending Date" "date" data-set focus]
-       [o6-form-subdiv-sel "Sub Division Name" :subdivisionname (:subdivisions @storage) data-set]
+       [o6-form-subdiv-sel "Sub Division Name" :subdivisionname (:subdivisions @storage) data-set focus]
        [o6register-input-row :racknumber "Rack Number" "text" data-set focus]
        [o6register-input-row :description "Description" "text" data-set focus]
        ;; [:div [:spn (str @data-set)]]
