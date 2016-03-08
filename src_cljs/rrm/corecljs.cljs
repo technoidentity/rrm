@@ -88,6 +88,22 @@
   (let [ls (reader/read-string (js->clj (get-item local-storage "session")))]
     (set-item local-storage "session" (assoc ls :current-url url))))
 
+(defn home-button []
+  (accountant/navigate! "/"))
+
+(defn not-found []
+  [:div.container
+   [:section.content
+    [:div.error-page
+     [:h2.headline.text-yellow " 404"]
+     [:div.error-content
+      [:h3 [:i.fa.fa-warning.text-yellow] " Oops! Page not found."]
+      [:p
+       "\n We could not find the resource you were looking for.\n            "
+       [:br]
+       [:br]
+       [:button.btn.btn-primary.btn-lg {:on-click home-button} [:span.glyphicon.glyphicon-home]  "Home"]]]]]])
+
 
 ;; ----------------------------------------------------------------------------------
 ;; login-form with validations
@@ -1384,16 +1400,17 @@
                            (set-page! [revenue-add-template])))]
         (http-get-auth (str serverhost "subdivisions") onres))))
 
+
 (defroute revenue-upd-path "/revenue/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [revenue-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :revenues)))])))
+  (let [rev-res (fn [json] (cond (= (get-status json) 200)(set-page! [revenue-update-template id (getdata json)])
+                                (= (get-status json) 404) (set-page! [not-found])
+                                :else (sign-out)))
+        onres (fn[json](set-key-value :villages (getdata json)))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
     (do
       (http-get-auth (str serverhost "villages") onres)
-      (http-get-auth (str serverhost "subdivisions") sub-res))))
+      (http-get-auth (str serverhost "subdivisions") sub-res)
+      (http-get-auth (str serverhost "revenuerecords/" (int id)) rev-res))))
 
 (defn revenue-add [event]
   (accountant/navigate! "/revenue/add"))
@@ -1573,16 +1590,16 @@
                            (set-page! [khasragirdwani-add-template])))]
         (http-get-auth (str serverhost "subdivisions") onres))))
 
-        (defroute khasragirdwani-upd-path "/khasragirdwani/update/:id" [id]
-          (let [onres (fn[json](
-                               (set-key-value :villages (getdata json))
-                               (set-page! [khasragirdwani-update-template id
-                                           (first (filter (fn[obj]
-                                                            (=(.-id obj) (.parseInt js/window id))) (get-value! :khasragirdwanis)))])))
-                sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
-            (do
-              (http-get-auth (str serverhost "villages") onres)
-              (http-get-auth (str serverhost "subdivisions") sub-res))))
+(defroute khasragirdwani-upd-path "/khasragirdwani/update/:id" [id]
+  (let [khas-res (fn [json] (cond (= (get-status json) 404) (set-page! [not-found])
+                                 (= (get-status json) 200) (set-page! [khasragirdwani-update-template id (getdata json)])
+                                 :else (sign-out)))
+        onres (fn[json](set-key-value :villages (getdata json)))
+        sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
+    (do
+      (http-get-auth (str serverhost "villages") onres)
+      (http-get-auth (str serverhost "subdivisions") sub-res)
+      (http-get-auth (str serverhost "khasragirdwanis/" (int id)) khas-res))))
 
 (defn khasragirdwani-add [event]
   (accountant/navigate! "/khasragirdwani/add"))
@@ -1758,15 +1775,14 @@
         (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute masavi-upd-path "/masavi/update/:id" [id]
-  (let [onres (fn[json]
-                ((set-key-value :villages (getdata json))
-                 (set-page! [masavi-update-template id
-                             (first (filter (fn[obj]
-                                              (=(.-id obj) (.parseInt js/window id)))
-                                            (get-value! :masavis)))])))
+  (let [mas-res (fn [json] (cond (= (get-status json) 200)(set-page! [masavi-update-template id (getdata json)])
+                                (= (get-status json) 404) (set-page! [not-found])
+                                :else (sign-out)))
+        onres (fn[json] (set-key-value :villages (getdata json)))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
     (http-get-auth (str serverhost "villages") onres)
-    (http-get-auth (str serverhost "subdivisions") sub-res)))
+    (http-get-auth (str serverhost "subdivisions") sub-res)
+    (http-get-auth (str serverhost "masavis/" (int id)) mas-res)))
 
 (defn masavi-add [event]
   (accountant/navigate! "/masavi/add"))
@@ -1948,14 +1964,14 @@
         (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute consolidation-upd-path "/consolidation/update/:id" [id]
-  (let [onres (fn[json] (set-key-value :villages (getdata json)))
+  (let [cons-res (fn [json] (cond (= (get-status json) 200)(set-page! [consolidation-update-template id (getdata json)])
+                                 (= (get-status json) 404) (set-page! [not-found])
+                                 :else (sign-out)))
+        onres (fn[json] (set-key-value :villages (getdata json)))
         sub-res (fn[json] (set-key-value :subdivisions (getdata json)))]
     (http-get-auth (str serverhost "villages") onres)
     (http-get-auth (str serverhost "subdivisions") sub-res)
-    (set-page! [consolidation-update-template id
-                (first (filter (fn[obj]
-                                 (=(.-id obj) (.parseInt js/window id)))
-                               (get-value! :consolidations)))])))
+    (http-get-auth (str serverhost "consolidations/" (int id)) cons-res)))
 
 (defn render-consolidation [consolidations]
   [:div.col-md-12
@@ -2127,14 +2143,14 @@
         (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute fieldbook-upd-path "/fieldbook/update/:id" [id]
-  (let [onres (fn[json] (set-key-value :villages (getdata json)))
+  (let [field-res (fn [json] (cond (= (get-status json) 200) (set-page! [fieldbook-update-template id (getdata json)])
+                                  (= (get-status json) 404) (set-page! [not-found])
+                                  :else (sign-out)))
+        onres (fn[json] (set-key-value :villages (getdata json)))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
-    (http-get-auth (str serverhost "subdivisions") onres)
+    (http-get-auth (str serverhost "villages") onres)
     (http-get-auth (str serverhost "subdivisions") sub-res)
-    (set-page! [fieldbook-update-template id
-                (first (filter (fn[obj]
-                                 (=(.-id obj) (.parseInt js/window id)))
-                               (get-value! :fieldbooks)))])))
+    (http-get-auth (str serverhost "fieldbooks/" (int id)) field-res)))
 
 (defn fieldbook-add [event]
   (accountant/navigate! "/fieldbook/add"))
@@ -2345,12 +2361,12 @@
         (http-get-auth (str serverhost "villages") onres))))
 
 (defroute misc-upd-path "/misc/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :villages (getdata json))
-                       (set-page! [misc-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :miscs)))])))]
-    (http-get-auth (str serverhost "villages") onres)))
+  (let [misc-res (fn [json] (cond (= (get-status json) 200) (set-page! [misc-update-template id (getdata json)])
+                                 (= (get-status json) 404) (set-page! [not-found])
+                                 :else (sign-out)))
+        onres (fn[json](set-key-value :villages (getdata json)))]
+    (http-get-auth (str serverhost "villages") onres)
+    (http-get-auth (str serverhost "miscs/" (int id)) misc-res)))
 
 (defn render-misc [miscs]
   [:div.col-md-12
@@ -2548,15 +2564,15 @@
       (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute o2register-upd-path "/o2register/update/:id" [id]
-  (let [onres (fn[json](
-                       (set-key-value :subdivisions (getdata json))
-                       (set-page! [o2register-update-template id
-                                   (first (filter (fn[obj]
-                                                    (=(.-id obj) (.parseInt js/window id))) (get-value! :o2registers)))])))
+  (let [o2r-res (fn [json] (cond (= (get-status json) 200) (set-page! [o2register-update-template id (getdata json)])
+                                (= (get-status json) 404) (set-page! [not-found])
+                                :else (sign-out)))
+        onres (fn[json](set-key-value :subdivisions (getdata json)))
         ono2resp (fn [json] (set-key-value :o2mutations
                                           (clj->js (cons "select" (js->clj (getdata json))))))]
     (http-get-auth (str serverhost "mutations/o2numbers/search") ono2resp)
-    (http-get-auth (str serverhost "subdivisions") onres)))
+    (http-get-auth (str serverhost "subdivisions") onres)
+    (http-get-auth (str serverhost "o2registers/" (int id)) o2r-res)))
 
 (defn o2register-add [event]
   (accountant/navigate! "/o2register/add"))
@@ -2736,15 +2752,16 @@
 
 
 (defroute o4register-upd-path "/o4register/update/:id" [id]
-  (let [o4-res (fn [json] (set-key-value :o4mutations (getdata json)))
+  (let [o4r-res (fn [json] (cond (= (get-status json) 200) (set-page! [o4register-update-template id (getdata json)])
+                                (= (get-status json) 404) (set-page! [not-found])
+                                :else (sign-out)))
+        o4-res (fn [json] (set-key-value :o4mutations (getdata json)))
         vill-res (fn[json](set-key-value :villages (getdata json)))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))]
     (http-get-auth (str serverhost "mutations/o4numbers/search") o4-res)
     (http-get-auth (str serverhost "villages") vill-res)
     (http-get-auth (str serverhost "subdivisions") sub-res)
-    (set-page! [o4register-update-template id
-                (first (filter (fn[obj]
-                                 (=(.-id obj) (.parseInt js/window id))) (get-value! :o4registers)))])))
+    (http-get-auth (str serverhost "o4registers/" (int id)) o4r-res)))
 
 
 
@@ -2954,16 +2971,14 @@
         (http-get-auth (str serverhost "subdivisions") onres))))
 
 (defroute o6register-upd-path "/o6register/update/:id" [id]
-  (let [onres (fn[json]
-                ((set-key-value :subdivisions (getdata json))
-                 (set-page! [o6register-update-template id
-                             (first (filter
-                                     (fn[obj]
-                                       (=(.-id obj) (.parseInt js/window id)))
-                                     (get-value! :o6registers)))])))
+  (let [o6r-res (fn [json] (cond (= (get-status json) 200) (set-page! [o6register-update-template id (getdata json)])
+                                (= (get-status json) 404) (set-page! [not-found])
+                                :else (sign-out)))
+        onres (fn[json] (set-key-value :subdivisions (getdata json)))
         ono6resp (fn [json] (set-key-value :o6mutations (getdata json)))]
     (http-get-auth (str serverhost "mutations/o6numbers/search") ono6resp)
-    (http-get-auth (str serverhost "subdivisions") onres)))
+    (http-get-auth (str serverhost "subdivisions") onres)
+    (http-get-auth (str serverhost "o6registers/" (int id)) o6r-res)))
 
 (defn o6register-add [event]
   (accountant/navigate! "/o6register/add"))
