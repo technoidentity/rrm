@@ -1210,15 +1210,17 @@
         (http-get-auth (str serverhost "districts") onres))))
 
 (defroute documents-path1 "/mutations/update/:id" [id]
-  (let [upd-data (first (filter (fn[obj] (=(.-id obj) (.parseInt js/window id))) (get-value! :mutations)))
+  (let [mut-res (fn [json] (cond (= (get-status json) 200) (set-page! [mutation-update-template id (getdata json)])
+                                (= (get-status json) 404) (set-page! [not-found])
+                                :else (sign-out)))
         vill-res (fn[json](set-key-value :villages (getdata json)))
         sub-res (fn[json](set-key-value :subdivisions (getdata json)))
-        dist-res (fn[json] ((set-key-value :districts (getdata json))
-                           (set-page! [mutation-update-template id upd-data])))]
+        dist-res (fn[json] (set-key-value :districts (getdata json)))]
     (do
       (http-get-auth (str serverhost "districts") dist-res)
       (http-get-auth (str serverhost "villages") vill-res)
-      (http-get-auth (str serverhost "subdivisions") sub-res))))
+      (http-get-auth (str serverhost "subdivisions") sub-res)
+      (http-get-auth (str serverhost "mutations/" (int id)) mut-res))))
 
 
 
