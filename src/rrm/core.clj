@@ -14,9 +14,9 @@
             [clj-time.format :as f]
             [clj-time.coerce :as c]
             [clojure.string :as st]
-            [crypto.password.bcrypt :as pwds]
-            )
-  (:gen-class))
+            [crypto.password.bcrypt :as pwds])
+  (:import [org.eclipse.jetty.server.handler.gzip GzipHandler])
+(:gen-class))
 
 (defn home
   ""
@@ -66,6 +66,18 @@
   (route/resources "/static")
   (route/not-found "<h1>Page not found</h1>"))
 
+(defn- add-gzip-handler [server]
+  (.setHandler server
+               (doto (GzipHandler.)
+                 (.setIncludedMimeTypes (into-array ["text/css"
+                                                     "text/plain"
+                                                     "text/javascript"
+                                                     "application/javascript"
+                                                     "application/json"
+                                                     "image/svg+xml"]))
+                 (.setMinGzipSize 3024)
+                 (.setHandler (.getHandler server)))))
+
 (def app
   (-> app-routes
       (wrap-defaults (assoc-in site-defaults [:security :anti-forgery] false))
@@ -77,5 +89,6 @@
 (defn -main
   "Record Room Management System "
   [& args]
-  (jetty/run-jetty app {:port 8193
-                        :join? false}))
+  (jetty/run-jetty app (merge {:port 8193
+                               :join? false
+                               :configurator add-gzip-handler})))

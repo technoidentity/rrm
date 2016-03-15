@@ -26,7 +26,8 @@
                   :exclusions [org.webjars.bower/jquery]]
                  [com.andrewmcveigh/cljs-time "0.4.0"]
                  [hodgepodge "0.1.3"]
-                 [venantius/accountant "0.1.7"]]
+                 [venantius/accountant "0.1.7"]
+                 [org.eclipse.jetty/jetty-server "9.3.3.v20150827"]]
 
   :min-lein-version "2.5.2"
   :plugins [[lein-ring "0.8.13"]
