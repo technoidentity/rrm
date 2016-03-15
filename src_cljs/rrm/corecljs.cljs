@@ -157,19 +157,20 @@
             [:div {:style  {:color "red"}} [:b (str (first ((login-validator @data-set) id)))]])
           [:div])])))
 
-          (defn submit-login [data-set focus]
-            (if (= nil (login-validator @data-set))
-              (let [onresp (fn [json]
-                             (if (= (get-status json) 200)
-                               ((set-key-value :user (.-_2 (getdata json)))
-                                (set-key-value :token (.-_1 (getdata json)))
-                                (set-item local-storage "session" {:current-url "/" :user-info
-                                                                   {:token (get-value! :token)
-                                                                    :user (get-value! :user)}})
-                                (reset-login-page)
-                                (accountant/navigate! "/"))))]
-                (http-post (str serverhost "login") onresp (.serialize (Serializer.) (clj->js @data-set ))))
-              (reset! focus "on")))
+(defn submit-login [data-set focus]
+  (if (= nil (login-validator @data-set))
+    (let [onresp (fn [json]
+                   (cond (= (get-status json) 200) (do
+                                                     (set-key-value :user (.-_2 (getdata json)))
+                                                     (set-key-value :token (.-_1 (getdata json)))
+                                                     (set-item local-storage "session" {:current-url "/" :user-info
+                                                                                        {:token (get-value! :token)
+                                                                                         :user (get-value! :user)}})
+                                                     (reset-login-page)
+                                                     (accountant/navigate! "/"))
+                         :else (set! (.-display (.-style (dom/getElement "invalid"))) "block")))]
+      (http-post (str serverhost "login") onresp (.serialize (Serializer.) (clj->js @data-set ))))
+    (reset! focus "on")))
 
 
 
@@ -177,7 +178,9 @@
 (defn submit-button [data-set focus]
   [:div.row
    [:div.col-md-4
-    [:button {:class "btn btn-primary btn-block btn-flat" :on-click #(submit-login data-set focus)} "Sign In" ]]])
+    [:button {:class "btn btn-primary btn-block btn-flat" :on-click #(submit-login data-set focus)} "Sign In" ]]
+   [:div.col-sm-8
+    [:label#invalid {:style {:color "red" :display "none"}} "Invalid Credentials"]]])
 
 (defn login []
   (let [my-data (r/atom  {})
