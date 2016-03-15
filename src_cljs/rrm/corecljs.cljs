@@ -131,9 +131,9 @@
 
 (defn login-validator [data-set]
   (first (b/validate data-set
-                     :username [[v/required :message "Filed is required"]
+                     :username [[v/required :message "Field is required"]
                                 [v/email :message "Enter valid email-id"]]
-                     :password [[v/required :message "Filed is required"]
+                     :password [[v/required :message "Field is required"]
                                 [v/string  :message "Enter valid password"]])))
 
 (defn input-element [id ttype data-set placeholder in-focus]
