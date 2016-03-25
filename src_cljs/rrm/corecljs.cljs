@@ -75,6 +75,9 @@
 (defn get-status [res]
   (.getStatus (.-target res)))
 
+(defn get-response-text [json]
+  (.getResponseText (.-target json)))
+
 (defn http-post [url callback data]
   (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json" :rrm-auth (get-value! :token)}))))
 
@@ -168,8 +171,12 @@
                                                                                          :user (get-value! :user)}})
                                                      (reset-login-page)
                                                      (accountant/navigate! "/"))
-                         :else (set! (.-display (.-style (dom/getElement "invalid"))) "block")))]
-      (http-post (str serverhost "login") onresp (.serialize (Serializer.) (clj->js @data-set ))))
+                         :else (do
+                                 (set! (.-innerHTML (dom/getElement "invalid")) (get-response-text json))
+                                 (set! (.-display (.-style (dom/getElement "invalid"))) "block")
+                                 (.reset js/grecaptcha))))]
+      (http-post (str serverhost "login") onresp (.serialize (Serializer.)
+                                                             (clj->js (assoc @data-set :captchaToken (.getResponse js/grecaptcha))))))
     (reset! focus "on")))
 
 
@@ -181,6 +188,7 @@
     [:button {:class "btn btn-primary btn-block btn-flat" :on-click #(submit-login data-set focus)} "Sign In" ]]
    [:div.col-sm-8
     [:label#invalid {:style {:color "red" :display "none"}} "Invalid Credentials"]]])
+
 
 (defn login []
   (let [my-data (r/atom  {})
@@ -194,6 +202,8 @@
          [:p.login-box-msg "Sign in to start your session"]
          [login-input :username "glyphicon glyphicon-envelope form-control-feedback" "email" my-data "Email" focus]
          [login-input :password "glyphicon glyphicon-lock form-control-feedback" "password" my-data "password" focus]
+         [:div.g-recaptcha {:data-sitekey "6LcapRsTAAAAAELi-KkWJRgnfa3-QpXm1g7Vu6Ds" :data-callback  "rrm.corecljs.recaptcha_callback"}]
+         [:br]
          [submit-button my-data focus ]]]])))
 
 
@@ -205,19 +215,21 @@
   (not (nil? (get-value! :user))))
 
 (defn is-admin-or-super-admin []
-  (let [role (.-role (get-value! :user))]
-    (or (= role "admin")
-        (= role "superadmin"))))
+  (if (nil? (get-value! :user)) false
+      (let [role (.-role (get-value! :user))]
+        (or (= role "admin")
+            (= role "superadmin")))))
 
 (defn set-page! [currnt-page]
-  (if (nil? (get-value! :user)) (set-key-value :page-location [login])
+  (if (nil? (get-value! :user)) (set! (.-location js/window) "/login")
       (set-key-value :page-location
                      currnt-page)))
 (defn sign-out []
   (set-key-value :user nil)
   (remove-item local-storage "session")
   ;;(set-page! [login])
-  (accountant/navigate! "/login"))
+                                        ;(accountant/navigate! "/login")
+  (set! (.-location js/window) "/login"))
 
 (defn get-total-rec-no [nos]
   (let [totrec (quot nos 10)]

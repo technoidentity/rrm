@@ -56,7 +56,7 @@
                 :source-paths ["src_cljs/"]
                 :compiler {:output-to "resources/public/js/app.js"
                            :output-dir "resources/public/js/out"
-                           :source-map true
+                           :source-map false
                            :optimizations :none
                            :asset-path "/static/js/out"
                            :main "rrm.corecljs"
@@ -65,7 +65,7 @@
                 :source-paths ["citizen_cljs/"]
                 :compiler {:output-to "resources/public/js/app1.js"
                            :output-dir "resources/public/js/out1"
-                           :source-map true
+                           :source-map false
                            :optimizations :none
                            :asset-path "/static/js/out1"
                            :main "rrm.citizen"
