@@ -2843,7 +2843,7 @@
                      :year [[v/required :message "Field is required"]
                             [year-after? :message "Year must greater than 1900"]
                             [year-before? :message "Year must less than 9999"]]
-                     :misalnumber [[v/required :message "Field is required"]]
+                     ;;:misalnumber [[v/required :message "Field is required"]]
                      ;; :startingdate [[v/required :message "Field is required"]
                      ;;                [date-year-after? :message "Year must greater than 1900"]
                      ;;                [date-year-before? :message "Year must less than 9999"]]
@@ -2872,7 +2872,7 @@
     (fn []
       [:div.form-group
        [:label.col-sm-3.control-label label]
-       [:div.col-sm-6 [input-int id ttype data-set label input-focus]]
+       [:div.col-sm-3 [input-int id ttype data-set label input-focus]]
        [:div.col-sm-3 (if (or @input-focus @focus)
                         (if (= nil (o6register-form-validator @data-set))
                           [:div]
@@ -2914,10 +2914,10 @@
      [:div.form-horizontal
       [:div.box-body
        [o6register-input-row :o6number  "O6 Number" "text" data-set focus]
-       [o6register-input-int-row :year "Year" "text" data-set focus]
-       [o6register-input-row :misalnumber "Misal Number" "text" data-set focus]
-       [o6register-input-row :startingdate "Starting Date" "date" data-set focus]
-       [o6register-input-row :endingdate "Ending Date" "date" data-set focus]
+       [o6register-input-row :year "Year" "text" data-set focus]
+      ;; [o6register-input-row :misalnumber "Misal Number" "text" data-set focus]
+     ;;  [o6register-input-row :startingdate "Starting Date" "date" data-set focus]
+       ;;[o6register-input-row :endingdate "Ending Date" "date" data-set focus]
        [o6-form-subdiv-sel "Sub Division Name" :subdivisionname (:subdivisions @storage) data-set focus]
        [o6register-input-row :racknumber "Rack Number" "text" data-set focus]
        [o6register-input-row :description "Description" "text" data-set focus]
@@ -2957,9 +2957,9 @@
                              :o6number (.-o6number dmt)
                              :subdivisionname (.-subdivisionname dmt)
                              :year (.-year dmt)
-                             :misalnumber (.-misalnumber dmt)
-                             :startingdate (.-startingdate dmt)
-                             :endingdate (.-endingdate dmt)
+                            ;; :misalnumber (.-misalnumber dmt)
+                            ;; :startingdate (.-startingdate dmt)
+                            ;; :endingdate (.-endingdate dmt)
                              :racknumber (.-racknumber dmt)
                              :description (.-description dmt)
                              })
@@ -3017,9 +3017,9 @@
           (when (is-admin-or-super-admin) [:th " "])
           [:th "O6 Number"]
           [:th "Year"]
-          [:th "Misal Number"]
-          [:th "Starting Date"]
-          [:th "Ending Date"]
+        ;;  [:th "Misal Number"]
+        ;;  [:th "Starting Date"]
+        ;;  [:th "Ending Date"]
           [:th "Sub Division Name"]
           [:th "Rack Number"]
           [:th "Description"]
@@ -3036,9 +3036,9 @@
                                     :on-click #(o6register-delete(.-id mt))}"Delete"]])
                    [:td (.-o6number mt)]
                    [:td (.-year mt)]
-                   [:td (.-misalnumber mt)]
-                   [:td (.-startingdate mt)]
-                   [:td (.-endingdate mt)]
+                 ;; [:td (.-misalnumber mt)]
+                 ;;  [:td (.-startingdate mt)]
+                 ;;  [:td (.-endingdate mt)]
                    [:td (.-subdivisionname mt)]
                    [:td (.-racknumber mt)]
                    [:td (.-description mt)]
